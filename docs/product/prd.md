@@ -97,7 +97,7 @@ Written for the JD's UR specialist (the UR clinician here), a UR coordinator and
 - **US-01** Cases sorted by review deadline, so no authorization lapses.
 - **US-02** Requested and authorized periods, deadline and a draft packet ready on open.
 - **US-03** Every draft statement opens its source passage.
-- **US-04** Each ASAM or LOCUS dimension marked met, unmet or unclear, with a quote.
+- **US-04** Each ASAM or LOCUS dimension labeled documented, not found or unclear, with a quote.
 - **US-05** Missing notes are blocking issues a checkbox can't close.
 - **US-06** Auth-record vs request conflicts (dates, units) shown side by side, never silently changed.
 - **US-07** The plan's 3 likely objections, with answering evidence, before approval.
@@ -207,7 +207,7 @@ Content is always labeled as agent-prepared, source-verified, clinician-edited o
 | FR-03 | Must | Sign in with demo roles; check on the server, for every request, that the user may see that case |
 | FR-04 | Must | Produce a versioned draft packet whose material claims link to source passages or carry an "unsupported" flag |
 | FR-05 | Must | Show source metadata and the original passage for each citation. Never alter original documents |
-| FR-06 | Must | Check the chart against public criteria: each ASAM or LOCUS dimension marked met, unmet or unclear, with the supporting quote |
+| FR-06 | Must | Check the chart against public criteria: each ASAM or LOCUS dimension labeled documented, not found or unclear, with the supporting quote. Labels describe the record, not whether criteria are met; the clinician makes that judgment |
 | FR-07 | Must | Track missing documents and administrative conflicts as typed issues with owners, statuses and resolution evidence |
 | FR-08 | Must | Run the Insurer Reviewer before approval and on appeal drafts, listing the 3 most likely objections with the evidence that would answer each |
 | FR-09 | Must | Let a clinician edit or reject draft wording without changing the source record |
@@ -215,7 +215,7 @@ Content is always labeled as agent-prepared, source-verified, clinician-edited o
 | FR-11 | Must | Block approval for missing required sources, unresolved critical issues, unsupported claims, failed validation, or a packet changed since review |
 | FR-12 | Must | Record clinician approval against an immutable packet version and hash; invalidate it on any material change |
 | FR-13 | Must | Keep an append-only audit history of access, extraction, edits, issue actions, validation, approval and export |
-| FR-14 | Must | Parse a denial letter into plan, level of care, dates, reason and appeal deadline |
+| FR-14 | Must | Parse every payer letter (approval, partial approval, denial, request for information, appeal decision) into dates, units, reason, reviewer, deadlines and decision, with a verified quote per field; a clinician verifies parsed dates before they change an authorization or start a deadline |
 | FR-15 | Must | Show 3 to 5 similar real appeal cases, labeled by state, with outcome and the reviewer's reasons |
 | FR-16 | Must | Recommend Accept, Peer-to-peer, Resubmit or Appeal with the reason and the overturn rate at external review |
 | FR-17 | Must | Draft an appeal letter, peer-to-peer talking points or a list of documents to add, after the clinician picks |
@@ -226,6 +226,8 @@ Content is always labeled as agent-prepared, source-verified, clinician-edited o
 | FR-22 | Should | Denial and overturn trends by plan and care type (NY data) |
 | FR-23 | Later | Submit through an authorized integration and record receipt |
 | FR-24 | Later | Pre-certification and discharge workflows with the same controls |
+| FR-25 | Must | Track each case's payer status and appeal chain (peer-to-peer, internal, external) with deadline, submission (mocked), decision letter and outcome; an upheld appeal opens the next level and the queue sorts by the nearest open deadline |
+| FR-26 | Must | Bound every run with a per-call timeout, one retry and a per-run call and token budget. Show a partial-failure state that names failed, timed-out and skipped agents, keeps completed results, retries only failed agents, and blocks approval until the run is complete |
 
 ## 8. Agents and orchestration
 
@@ -235,7 +237,7 @@ The orchestrator is plain TypeScript on the Next.js server, not an LLM. It track
 | --- | --- | --- |
 | Orchestrator (code) | Intake or any changed input | Which agents run next; issue routing |
 | Clinical Documentation | Every case | Candidate facts with passage-level citations; missing or ambiguous records |
-| Payer Policy | Every case | Applicable policy and public criteria with version and effective date; each dimension met, unmet or unclear |
+| Payer Policy | Every case | Applicable policy and public criteria with version and effective date; each dimension documented, not found or unclear |
 | Authorization Tracking | Every case | Reconciles authorization, approved and requested dates; parses denial letters. Flags conflicts without guessing corrections. Mostly code |
 | Case Match | Denials, and new requests for objection grounding | 3 to 5 similar real cases chosen from 10 that code prefilters by care type and keywords |
 | Insurer Reviewer | Once per run, before approval and on appeal drafts | The 3 likeliest objections, using 4 generic reviewer questions and upheld NY cases, not one insurer's rules |
@@ -248,7 +250,33 @@ Umer's Denial and Appeals Agent is covered by Case Match plus Drafting in denial
 
 **Denial:** Authorization parses the letter; Documentation, Policy and Case Match run in parallel; Quality; the clinician picks a next step; Drafting; Insurer Reviewer (one fix round); Quality; clinician approval.
 
-An agent failure or unavailable source produces a visible incomplete state, never a silent pass. Each output records run ID, input versions, time, model version, findings, citations, uncertainty and errors. Diagrams: [agents](https://github.com/umerbashir-del/Umer-Johnathan-JD-repo/blob/main/docs/architecture/agents.md) and [agentic loop](https://github.com/umerbashir-del/Umer-Johnathan-JD-repo/blob/main/docs/architecture/agentic-loop.md).
+**LLM calls vs code.** Only seven steps call Claude. Everything else is deterministic TypeScript or SQL, so it's free, fast and testable.
+
+| Step | Kind | Calls per concurrent review | Calls per denial |
+| --- | --- | --- | --- |
+| Orchestrator, date and unit comparison, deadline math, quote verification, Case Match SQL prefilter, validation and approval gate | Code | 0 | 0 |
+| Clinical Documentation | LLM | 1 | 1 |
+| Payer Policy | LLM | 1 | 1 |
+| Authorization Tracking letter parser | LLM (date comparison is code) | 0 | 1 |
+| Case Match ranking | LLM (after the SQL prefilter) | 0 (1 with objection grounding) | 1 |
+| Insurer Reviewer | LLM | 1 | 1 to 2 |
+| Case Assembly and Drafting | LLM | 1 | 1 to 2 |
+| Independent Quality | LLM | 1 | 1 to 2 |
+| **Total** | | **5 to 6** | **7 to 10** |
+
+Estimate for one run on the demo model: under 100,000 tokens, under $1 and under 2 minutes. M6 replaces these numbers with measured ones.
+
+**Timeouts and partial failure**
+
+Every run is bounded:
+
+- Each call has a timeout and a capped number of retries.
+- Each run has a call and token budget.
+- Agents can't trigger more calls.
+
+If an agent fails or times out, the run shows as partial. It names the agent and the reason, keeps the results that succeeded, and lets the clinician retry only what failed. Approval stays blocked until the run is complete, and nothing is shown as complete when it isn't. The exact limits and states are in the [agent harness doc](../architecture/agent-harness.md#orchestrator-on-top).
+
+Each output records run ID, input versions, time, model version, findings, citations, uncertainty and errors. Diagrams: [agents](https://github.com/umerbashir-del/Umer-Johnathan-JD-repo/blob/main/docs/architecture/agents.md) and [agentic loop](https://github.com/umerbashir-del/Umer-Johnathan-JD-repo/blob/main/docs/architecture/agentic-loop.md).
 
 ## 9. Data
 
@@ -256,7 +284,8 @@ An agent failure or unavailable source produces a visible incomplete state, neve
 
 |  | New York | California |
 | --- | --- | --- |
-| Source | DFS external appeals | DMHC Independent Medical Review |
+| Source | [NY DFS external appeal search](https://www.dfs.ny.gov/public-appeal/search) export | [CA DMHC Independent Medical Review data](https://data.chhs.ca.gov/dataset/b79b3447-4c10-4ae6-84e2-1076f83bb24e) |
+| Decisions included | 2019 to 2026 (2026 partial; pulled Nov 3, 2026) | 2019 to 2026 (2026 partial; source covers 2001 on) |
 | Cases | 1,526 | 2,154 |
 | Overturned | 58% | 77% |
 | Strongest care types | Inpatient detox, inpatient psych | Residential, IOP, PHP |
@@ -264,7 +293,7 @@ An agent failure or unavailable source produces a visible incomplete state, neve
 
 Label every match by state, match within the same care type and prefer the same state, and never pool the overturn rates. Cleaning rules: [data/README.md](https://github.com/umerbashir-del/Umer-Johnathan-JD-repo/blob/main/data/README.md).
 
-**Synthetic sources to write:** the UR-1042 document set (notes for November 1 and 3, the authorization record, the Payer North policy), denial packets A to E, and a one-page public criteria summary (ASAM and LOCUS dimensions and the levels of care each maps to).
+**Synthetic sources (written, in the repo's `fixtures/`):** the UR-1042 document set (notes for November 1 and 3, the late November 2 note, the authorization record, the Payer North policy), four alternate payer responses for UR-1042, denial packets A to E with their appeal decision letters, and a one-page public criteria summary (ASAM and LOCUS dimensions and the levels of care each maps to).
 
 **Data model**
 
@@ -273,7 +302,9 @@ Label every match by state, match within the same care type and prefer the same 
 | Case | ID, type, patient pseudonym, service, payer and plan, assigned clinician, due time, status |
 | ReviewPeriod | Requested start and end, review point, rationale source, version |
 | Authorization | Identifier, status, approved period, source record, last verified time |
-| Denial | Reason, denied dates, appeal deadline, source letter, chosen next step |
+| PayerLetter | Kind (approval, partial approval, denial, request for info, appeal decision), parsed dates, units, reason, reviewer, deadlines, decision, a quote per field, verification status, chosen next step |
+| Appeal | Level (peer-to-peer, internal, external), status, deadline, submitted packet, decision letter, outcome, previous level |
+| Submission (mocked) | Packet version, approval, channel, time, fake confirmation number |
 | Document | ID, type, author, service date, received time, version, content hash |
 | EvidenceSpan | Document version, page or section, offsets, excerpt, extraction method |
 | Claim | Text, type, packet version, evidence span IDs, author, verification status |
@@ -315,7 +346,7 @@ A clinician may record why an issue is nonblocking where policy allows, but a re
 
 **42 CFR Part 2:** substance use disorder records may carry stricter consent and disclosure rules than HIPAA. A real system must record each record's origin and restrictions and check consent before agents retrieve, show, export or send it. The 2024 Part 2 rule's compliance date was February 16, 2026. Not every behavioral-health record is a Part 2 record, and counsel must validate the workflow.
 
-**Cost:** $40 of Claude API credit covers every in-app agent run, including testing. A full run is 8 or 9 calls, about 70,000 input and 30,000 output tokens: about $0.03 on Haiku 5.5, $0.45 on Sonnet 5.5 and $0.90 on Opus 5.5. Build and test on Haiku, keep the model name in one config value, cache shared prompts, and save agent outputs during development.
+**Cost:** $40 of Claude API credit covers every in-app agent run, including testing. A full run is 5 to 10 calls (see section 8), about 70,000 input and 30,000 output tokens: about $0.03 on Haiku 5.5, $0.45 on Sonnet 5.5 and $0.90 on Opus 5.5. Build and test on Haiku, keep the model name in one config value, cache shared prompts, and save agent outputs during development.
 
 **Performance:** a full run should finish in under 2 minutes, showing progress per agent.
 
@@ -331,6 +362,9 @@ A clinician may record why an issue is nonblocking where policy allows, but a re
 | Denial prevention | The Insurer Reviewer shows 3 objections, each tied to chart evidence or a gap, before approval is possible |
 | Denial handling | Uploading a synthetic denial letter shows the parsed reason and deadline, 3 to 5 similar real cases labeled by state, and a recommended next step with the overturn rate at external review |
 | Holdout | When a denial packet is tested, its own source case never appears in the matches |
+| Partial failure | If Payer Policy times out, the run shows Partial with the agent and reason, skips Assembly and Quality instead of running them on partial input, blocks approval, and Retry failed agents reruns only Payer Policy and its dependents |
+| Letter parsing | Each UR-1042 payer response and packet appeal decision parses to its `expected-fields.json`; every field shows its quote, and no authorization changes until a clinician verifies |
+| Appeal tracking | Uploading packet A's upheld internal decision opens an external-review appeal with its deadline; uploading the external decision closes it with the right outcome |
 | Approval gate | Approval is disabled while any blocking issue, failed check or unsupported material claim remains, and the screen names the blocker |
 | Version binding | Approval records clinician, time and packet hash. A material change invalidates it |
 | Auditability | A reviewer can reconstruct which sources and agent runs produced the approved packet and who resolved each issue |
@@ -355,6 +389,8 @@ Compare against a manual workflow and a single-agent baseline using the same sou
 | Cost and time per run | On the demo model | Under $1 and 2 minutes |
 
 Faster approval alone isn't success if source accuracy, issue detection or clinician confidence gets worse.
+
+**Five packets is a small sample.** Results on UR-1042 and packets A to E are exploratory. We report each case's result, not accuracy percentages, and we don't claim the agents generalize. The 3,680 real decisions are used for matching and context, not as a labeled test set.
 
 ## 14. Risks
 
@@ -386,7 +422,13 @@ Faster approval alone isn't success if source accuracy, issue detection or clini
 
 **Demo script**
 
-1. **Concurrent review and prevention (UR-1042):** the workspace flags the missing note and the date conflict, the Insurer Reviewer predicts objections, the clinician resolves the issues, and approval unlocks.
+1. **Concurrent review and the missing note (UR-1042):**
+   1. The workspace flags two blocking issues: the missing November 2 note, and the gap between the requested and authorized dates. Approve is disabled and names both.
+   2. The coordinator uploads the late November 2 note.
+   3. Only the affected agents rerun (Clinical Documentation, then Assembly and Quality), and progress shows per agent.
+   4. The case comes back to the clinician as "Needs review", with what changed highlighted.
+   5. The clinician verifies the new facts, records the verified dates with a reason, reviews the Insurer Reviewer's objections, and approves the exact packet version.
+   6. *Optional failure beat:* force one agent to time out to show the Partial state, then use Retry failed agents.
 2. **Denial:** a denied detox stay. The app parses the letter, shows overturned case 201908-120030 next to upheld 201908-119701, recommends a next step and drafts the appeal around the ASAM dimensions. The clinician approves it.
 
 **Open questions**

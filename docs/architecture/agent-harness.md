@@ -62,6 +62,11 @@ export interface AgentDef<I, O extends z.ZodTypeAny> {
 - **Targeted reruns:** when a document or field changes, rerun only agents whose input hash changed, then Assembly and Quality.
 - **Bounded rework:** the Insurer Reviewer gets one fix round with the drafter; anything still open becomes an issue for a person.
 - The UI polls run status (or listens over server-sent events) and shows each agent's progress.
+- **Timeouts:** each call has a 60-second timeout (`timeoutMs` on the agent) and one retry. SDK retries are off (`maxRetries: 0`), so the harness owns the count. A timeout returns `errorKind: "timeout"`.
+- **Run budget:** the orchestrator counts calls and tokens per run group (12 calls, 200,000 tokens). It checks before starting each agent and stops at the limit, marking the group `budget_exceeded`.
+- **Retry limits (no runaway calls):** at most 2 attempts per call (1 retry, SDK retries off); at most 2 manual "Retry failed agents" per agent per run group, then it becomes an issue for a person; reruns only when an agent's input hash changed; one Insurer Reviewer fix round. Agents have no tools, so they can't trigger calls. Set a $40 monthly spend limit on the Anthropic workspace as the last backstop.
+- **States:** agent runs are queued, running, succeeded, needs_review (an unsupported quote), failed, timed_out or skipped. Run groups are running, complete, partial, failed or budget_exceeded. Every attempt, error, token count and cost goes on the `agent_runs` row.
+- **Partial failure:** if an agent fails or times out, agents that depend on it are marked `skipped` rather than run on partial input. Agents that don't depend on it still run. The group ends `partial`, approval stays blocked, and "Retry failed agents" reruns only the failed agent and its dependents.
 
 ## Models and cost
 

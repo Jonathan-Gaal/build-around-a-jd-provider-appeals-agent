@@ -10,7 +10,7 @@ A plain TypeScript orchestrator on the Next.js server decides which agents run a
 | --- | --- | --- | --- |
 | Orchestrator | Case status | Which agents run next | Plain code, no API cost |
 | Clinical Documentation (Umer) | Intake, treatment plan, progress notes | Facts with quotes, plus missing items (for example, no discharge plan) | Runs on every case |
-| Payer Policy (Umer) | Those facts, plus the public criteria summary (LOCUS, ASAM) | Each criteria dimension marked met, unmet or unclear, with the supporting quote | Runs on every case |
+| Payer Policy (Umer) | Those facts, plus the public criteria summary (LOCUS, ASAM) | Each criteria dimension labeled documented, not found or unclear, with the supporting quote | Runs on every case |
 | Authorization Tracking (Umer) | Request, denial letter | Plan, level of care, dates, units, denial reason, appeal deadline | Mostly code. The LLM only parses the denial letter into fields |
 | Case Match (new) | Facts, plus the 10 closest NY and CA cases | The 3 to 5 most similar cases, what won or lost, and a recommended next step | Code picks the 10 cases first by care type and keywords, so the LLM never reads the whole dataset |
 | Insurer Reviewer (new) | The request or appeal draft, plus similar upheld cases | The 3 most likely objections, each with the evidence that would answer it | Adversarial. Runs once per run |

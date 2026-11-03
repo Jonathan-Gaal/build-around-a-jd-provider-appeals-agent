@@ -1,0 +1,57 @@
+{
+  "request-for-info.md": {
+    "kind": "request_for_info",
+    "letter_date": "2026-11-03",
+    "auth_number": "PN-AUTH-55821",
+    "requested_start": "2026-11-04",
+    "requested_end": "2026-11-06",
+    "items_requested": [
+      "progress note for 2026-11-02",
+      "most recent suicide risk assessment"
+    ],
+    "response_due_at": "2026-11-04T12:00:00-05:00",
+    "reviewer_credentials": "RN"
+  },
+  "approval.md": {
+    "kind": "approval",
+    "letter_date": "2026-11-04",
+    "auth_number": "PN-AUTH-55821",
+    "approved_start": "2026-11-04",
+    "approved_end": "2026-11-06",
+    "approved_units": 3,
+    "next_review_due_at": "2026-11-06T17:00:00-05:00"
+  },
+  "partial-approval.md": {
+    "kind": "partial_approval",
+    "letter_date": "2026-11-04",
+    "auth_number": "PN-AUTH-55821",
+    "approved_start": "2026-11-04",
+    "approved_end": "2026-11-05",
+    "approved_units": 2,
+    "denied_start": "2026-11-06",
+    "denied_end": "2026-11-06",
+    "denial_category": "medical_necessity",
+    "next_review_due_at": "2026-11-05T17:00:00-05:00",
+    "reviewer_credentials": "MD, board certified in psychiatry",
+    "p2p_deadline": "2026-11-05",
+    "appeal_deadline": "2027-05-03",
+    "expedited_appeal_available": true
+  },
+  "denial.md": {
+    "kind": "denial",
+    "letter_date": "2026-11-04",
+    "auth_number": "PN-AUTH-55821",
+    "denied_start": "2026-11-04",
+    "denied_end": "2026-11-06",
+    "denial_category": "medical_necessity",
+    "level_of_care_requested": "Inpatient psychiatric, acute",
+    "level_of_care_offered": "partial hospitalization (PHP)",
+    "criteria_cited": [
+      "Payer North BH-CR-07 v3.2"
+    ],
+    "reviewer_credentials": "MD, board certified in psychiatry",
+    "p2p_deadline": "2026-11-05",
+    "appeal_deadline": "2027-05-03",
+    "expedited_appeal_available": true
+  }
+}
