@@ -153,6 +153,6 @@ export const clinicalDocumentationAgent: AgentDef<ClinicalDocumentationInput, Cl
   buildPrompt,
   extractQuotes: (out) => out.facts.flatMap((f) => f.quotes),
   maxTokens: 8000,
-  timeoutMs: 120_000,
+  timeoutMs: 60_000, // PRD section 8: 60-second timeout per call, one retry
   maxRetries: 1,
 };

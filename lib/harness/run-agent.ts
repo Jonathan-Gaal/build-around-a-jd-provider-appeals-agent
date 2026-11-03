@@ -32,6 +32,9 @@ export interface ClaudeClient {
 
 export type RunStatus = "ok" | "needs_review" | "failed";
 
+/** Why a run failed. "timeout" is shown separately in the UI so the clinician sees a timed-out agent, not a generic error. */
+export type ErrorKind = "timeout" | "api" | "schema" | "truncated" | "refusal" | "no_replay";
+
 /** One row for the agent_runs table. The caller decides where to store it. */
 export interface AgentRunRecord {
   agent: string;
@@ -46,6 +49,7 @@ export interface AgentRunRecord {
   costUsd: number;
   replayed: boolean;
   error?: string;
+  errorKind?: ErrorKind;
   startedAt: string;
   durationMs: number;
 }
@@ -59,6 +63,7 @@ export interface AgentResult<O> {
   usage: Usage | null;
   costUsd: number;
   error?: string;
+  errorKind?: ErrorKind;
 }
 
 export interface RunAgentOptions {
@@ -88,6 +93,22 @@ function replayMode(): "off" | "read" | "record" {
   return "off";
 }
 
+/** Harness-raised errors carry their kind so the UI can say what happened. */
+class AgentOutputError extends Error {
+  constructor(
+    message: string,
+    readonly kind: ErrorKind,
+  ) {
+    super(message);
+  }
+}
+
+function classifyError(err: unknown): ErrorKind {
+  if (err instanceof AgentOutputError) return err.kind;
+  if (err instanceof Anthropic.APIConnectionTimeoutError) return "timeout";
+  return "api";
+}
+
 /** 400/401/403/404 will fail the same way again, so do not retry them. */
 function isRetryable(err: unknown): boolean {
   if (err instanceof Anthropic.APIError) {
@@ -112,6 +133,7 @@ export async function runAgent<I extends AgentInput, O>(
   let attempts = 0;
   let replayed = false;
   let error: string | undefined;
+  let errorKind: ErrorKind | undefined;
 
   if (mode === "read") {
     const saved = await readReplay(key);
@@ -121,6 +143,7 @@ export async function runAgent<I extends AgentInput, O>(
       replayed = true;
     } else {
       error = `No replay saved for ${key}. Run once with AGENT_RECORD=1 first.`;
+      errorKind = "no_replay";
     }
   } else {
     const client = opts.client ?? getClient();
@@ -139,15 +162,17 @@ export async function runAgent<I extends AgentInput, O>(
           { timeout: agent.timeoutMs, maxRetries: 0 }, // our loop owns retries
         );
         usage = res.usage;
-        if (res.stop_reason === "max_tokens") throw new Error(`Hit max_tokens (${agent.maxTokens}); output truncated`);
-        if (res.stop_reason === "refusal") throw new Error("Model refused");
+        if (res.stop_reason === "max_tokens") throw new AgentOutputError(`Hit max_tokens (${agent.maxTokens}); output truncated`, "truncated");
+        if (res.stop_reason === "refusal") throw new AgentOutputError("Model refused", "refusal");
         // Validate again ourselves: never trust a shape we did not check.
         const checked = agent.output.safeParse(res.parsed_output);
-        if (!checked.success) throw new Error(`Output failed schema: ${checked.error.message}`);
+        if (!checked.success) throw new AgentOutputError(`Output failed schema: ${checked.error.message}`, "schema");
         output = checked.data;
         error = undefined;
+        errorKind = undefined;
       } catch (err) {
         error = err instanceof Error ? err.message : String(err);
+        errorKind = classifyError(err);
         if (!isRetryable(err)) break;
       }
     }
@@ -172,11 +197,12 @@ export async function runAgent<I extends AgentInput, O>(
     costUsd: cost,
     replayed,
     error,
+    errorKind,
     startedAt: startedAt.toISOString(),
     durationMs: Date.now() - startedAt.getTime(),
   });
 
-  return { output, quoteChecks, status, usage, costUsd: cost, error };
+  return { output, quoteChecks, status, usage, costUsd: cost, error, errorKind };
 }
 
 /** Re-exported so agents and scripts import document helpers from one place. */

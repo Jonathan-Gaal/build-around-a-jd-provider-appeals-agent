@@ -1,0 +1,17 @@
+{
+  "internal-appeal-decision.md": {
+    "kind": "appeal_decision",
+    "appeal_level": "internal_1",
+    "letter_date": "2026-11-15",
+    "appeal_received": "2026-10-25",
+    "decision": "upheld",
+    "external_review_deadline": "2027-03-15"
+  },
+  "external-review-decision.md": {
+    "kind": "appeal_decision",
+    "appeal_level": "external",
+    "letter_date": "2026-12-29",
+    "appeal_received": "2026-11-29",
+    "decision": "overturned"
+  }
+}

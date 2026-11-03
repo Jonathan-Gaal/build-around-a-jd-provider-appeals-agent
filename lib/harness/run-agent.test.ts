@@ -3,6 +3,7 @@
  * PATTERN for agent tests: test the deterministic parts (prep, buildPrompt,
  * quote extraction) here; test the model's judgment with evals (scripts/eval.ts).
  */
+import Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
 import { clinicalDocumentationAgent, computeDateCoverage, type ClinicalDocumentationInput } from "../agents/clinical-documentation";
 import { runAgent, type AgentRunRecord, type ClaudeClient } from "./run-agent";
@@ -86,6 +87,14 @@ describe("runAgent", () => {
     const res = await runAgent(clinicalDocumentationAgent, input, { client, replay: "off", model: "claude-haiku-5-5", recordRun: (r) => void records.push(r) });
     expect(res.status).toBe("failed");
     expect(res.output).toBeNull();
-    expect(records[0]).toMatchObject({ status: "failed", attempts: 2, error: "timeout" });
+    expect(records[0]).toMatchObject({ status: "failed", attempts: 2, error: "timeout", errorKind: "api" });
+  });
+
+  it("labels an SDK timeout as errorKind timeout", async () => {
+    const timeout = new Anthropic.APIConnectionTimeoutError();
+    const client = fakeClient(timeout, timeout);
+    const res = await runAgent(clinicalDocumentationAgent, input, { client, replay: "off", model: "claude-haiku-5-5" });
+    expect(res.status).toBe("failed");
+    expect(res.errorKind).toBe("timeout");
   });
 });

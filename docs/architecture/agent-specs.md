@@ -28,15 +28,20 @@ type Gap = { item: string; why: string; severity: "critical" | "major" | "minor"
 ## 2. Payer Policy
 
 - **Input:** facts; policy document; criteria summary (ASAM or LOCUS by level of care).
-- **Output:** `{ policy: { policyId: string; version: string; effectiveFrom: string; requirements: { text: string; quote: Quote }[] }; dimensions: { framework: "ASAM" | "LOCUS"; dimension: string; status: "met" | "unmet" | "unclear"; factIds: string[]; note: string }[] }`
-- **Rule:** "met" describes documentation, not a clinical decision. The UI labels it "documented."
+- **Output:** `{ policy: { policyId: string; version: string; effectiveFrom: string; requirements: { text: string; quote: Quote }[] }; dimensions: { framework: "ASAM" | "LOCUS"; dimension: string; status: "documented" | "not_found" | "unclear"; factIds: string[]; note: string }[] }`
+- **Rule:** labels describe the record, not whether criteria are met. "documented" = the chart has quoted evidence for the dimension; "not_found" = no evidence in the documents provided; "unclear" = evidence conflicts or is vague. The clinician makes the judgment.
 
 ## 3. Authorization Tracking
 
 - **Mostly code:** compares `authorizations` and `review_periods` and creates `date_conflict` issues. No dates are ever changed.
-- **LLM part (letter parser):**
-  - **Input:** a denial letter.
-  - **Output:** `{ plan: string; levelOfCare: string; deniedStart: string; deniedEnd: string; reason: Quote; appealDeadline: string | null; reviewerCredentials: string | null; guidelinesNamed: string[] }`
+- **LLM part (letter parser):** reads any payer letter and fills a `payer_letters` row.
+  - **Input:** one letter of type `denial_letter`, `approval_letter`, `request_for_info_letter` or `appeal_decision_letter`, plus the case's auth number and requested dates for context.
+  - **Output:** `{ kind: "approval" | "partial_approval" | "denial" | "request_for_info" | "appeal_decision"; fields: { name: string; value: string | number | boolean | string[] | null; quote: Quote | null }[] }`. Field names match the `payer_letters` columns (`approved_start`, `denied_end`, `appeal_deadline`, `p2p_deadline`, `reviewer_credentials`, `criteria_cited`, `decision`, `appeal_level`, ...).
+  - **Rules:**
+    - Every non-null value carries the quote it came from; the harness verifies it.
+    - Relative deadlines ("within 180 days of this notice") are computed in code from `letter_date`, not by the model. The model returns the quote and `null`.
+    - Parsed dates go to a clinician for verification; they never update the authorization directly.
+  - **Eval:** compare against `fixtures/**/expected-fields.json` (exact match on dates and enums).
 
 ## 4. Case Match
 

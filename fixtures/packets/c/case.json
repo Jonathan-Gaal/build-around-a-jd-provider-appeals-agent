@@ -23,5 +23,11 @@
     "intake.md",
     "treatment-plan.md",
     "progress-notes.md"
-  ]
+  ],
+  "appeal_history": {
+    "_note": "What happened after the denial. Reveals the real outcome: never load into agent prompts while testing this packet; use it to demo status tracking and to eval the letter parser.",
+    "internal_1": "appeal-history/internal-appeal-decision.md",
+    "external": "appeal-history/external-review-decision.md",
+    "expected_fields": "appeal-history/expected-fields.json"
+  }
 }
