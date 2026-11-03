@@ -1,0 +1,43 @@
+{
+  "synthetic": true,
+  "case": {
+    "id": "UR-1042",
+    "type": "concurrent_review",
+    "patient_label": "Patient A",
+    "service": "Inpatient psychiatric treatment",
+    "level_of_care": "Inpatient psych",
+    "facility": "Harborview Behavioral Health Center (fictional)",
+    "payer": "Payer North (fictional)",
+    "plan": "Payer North Commercial PPO",
+    "due_at": "2026-11-03T17:00:00-05:00",
+    "status": "needs_review"
+  },
+  "authorization": {
+    "auth_number": "PN-AUTH-55821",
+    "status": "approved",
+    "approved_start": "2026-11-01",
+    "approved_end": "2026-11-03",
+    "units": 3,
+    "source_document": "auth-record.md"
+  },
+  "review_period": {
+    "requested_start": "2026-11-04",
+    "requested_end": "2026-11-06",
+    "review_point": "Day 4",
+    "source_document": "request.md"
+  },
+  "documents": [
+    "auth-record.md",
+    "request.md",
+    "intake.md",
+    "treatment-plan.md",
+    "note-2026-11-01.md",
+    "note-2026-11-03.md",
+    "policy-payer-north.md"
+  ],
+  "late_arrival": ["late-arrival/note-2026-11-02.md"],
+  "expected_issues": [
+    { "type": "missing_document", "description": "Progress note for Nov 2 is missing", "severity": "critical", "blocking": true },
+    { "type": "date_conflict", "description": "Requested Nov 4–6 extends past authorized Nov 1–3; verify the intended period", "severity": "major", "blocking": true }
+  ]
+}

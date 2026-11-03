@@ -1,0 +1,27 @@
+{
+  "synthetic": true,
+  "case": {
+    "id": "DN-A",
+    "type": "denial",
+    "patient_label": "Patient B",
+    "service": "Inpatient withdrawal management",
+    "level_of_care": "Inpatient SUD/detox",
+    "facility": "Northgate Recovery Hospital (fictional)",
+    "payer": "Riverbend Health HMO (fictional)",
+    "plan": "Riverbend Health HMO (fictional)",
+    "status": "denied"
+  },
+  "denial": {
+    "denied_start": "2026-10-14",
+    "denied_end": "2026-10-16",
+    "appeal_deadline": "2026-12-14",
+    "source_document": "denial-letter.md"
+  },
+  "holdout_case_id": "202012-133135",
+  "documents": [
+    "denial-letter.md",
+    "intake.md",
+    "treatment-plan.md",
+    "progress-notes.md"
+  ]
+}

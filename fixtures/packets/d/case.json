@@ -1,0 +1,27 @@
+{
+  "synthetic": true,
+  "case": {
+    "id": "DN-D",
+    "type": "denial",
+    "patient_label": "Patient E",
+    "service": "Residential mental health treatment",
+    "level_of_care": "Residential MH",
+    "facility": "Pinecrest Residential Treatment Center (fictional)",
+    "payer": "Summit Commercial EPO (fictional)",
+    "plan": "Summit Commercial EPO (fictional)",
+    "status": "denied"
+  },
+  "denial": {
+    "denied_start": "2026-07-27",
+    "denied_end": "2026-08-09",
+    "appeal_deadline": "2026-09-26",
+    "source_document": "denial-letter.md"
+  },
+  "holdout_case_id": "202012-133533",
+  "documents": [
+    "denial-letter.md",
+    "intake.md",
+    "treatment-plan.md",
+    "progress-notes.md"
+  ]
+}

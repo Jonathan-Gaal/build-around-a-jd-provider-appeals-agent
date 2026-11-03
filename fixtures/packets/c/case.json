@@ -1,0 +1,27 @@
+{
+  "synthetic": true,
+  "case": {
+    "id": "DN-C",
+    "type": "denial",
+    "patient_label": "Patient D",
+    "service": "Inpatient psychiatric eating disorder treatment",
+    "level_of_care": "Inpatient psych",
+    "facility": "Westbrook Psychiatric Hospital (fictional)",
+    "payer": "Lakeshore Community Medicaid (fictional)",
+    "plan": "Lakeshore Community Medicaid (fictional)",
+    "status": "denied"
+  },
+  "denial": {
+    "denied_start": "2026-08-25",
+    "denied_end": "2026-08-31",
+    "appeal_deadline": "2026-10-25",
+    "source_document": "denial-letter.md"
+  },
+  "holdout_case_id": "202012-133712",
+  "documents": [
+    "denial-letter.md",
+    "intake.md",
+    "treatment-plan.md",
+    "progress-notes.md"
+  ]
+}

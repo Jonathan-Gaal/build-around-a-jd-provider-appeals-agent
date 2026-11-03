@@ -1,0 +1,27 @@
+{
+  "synthetic": true,
+  "case": {
+    "id": "DN-B",
+    "type": "denial",
+    "patient_label": "Patient C",
+    "service": "Inpatient withdrawal management",
+    "level_of_care": "Inpatient SUD/detox",
+    "facility": "Northgate Recovery Hospital (fictional)",
+    "payer": "Lakeshore Community Medicaid (fictional)",
+    "plan": "Lakeshore Community Medicaid (fictional)",
+    "status": "denied"
+  },
+  "denial": {
+    "denied_start": "2026-09-02",
+    "denied_end": "2026-09-05",
+    "appeal_deadline": "2026-11-07",
+    "source_document": "denial-letter.md"
+  },
+  "holdout_case_id": "201908-119701",
+  "documents": [
+    "denial-letter.md",
+    "intake.md",
+    "treatment-plan.md",
+    "progress-notes.md"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "synthetic": true,
+  "case": {
+    "id": "DN-E",
+    "type": "denial",
+    "patient_label": "Patient F",
+    "service": "Residential substance use rehabilitation",
+    "level_of_care": "Residential SUD",
+    "facility": "Cedar Hill Recovery Residence (fictional)",
+    "payer": "Lakeshore Community Medicaid (fictional)",
+    "plan": "Lakeshore Community Medicaid (fictional)",
+    "status": "denied"
+  },
+  "denial": {
+    "denied_start": "2026-06-15",
+    "denied_end": "2026-06-28",
+    "appeal_deadline": "2026-08-15",
+    "source_document": "denial-letter.md"
+  },
+  "holdout_case_id": "202101-134221",
+  "documents": [
+    "denial-letter.md",
+    "intake.md",
+    "treatment-plan.md",
+    "progress-notes.md"
+  ]
+}
