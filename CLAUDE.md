@@ -30,7 +30,9 @@ Styling: **Tailwind utility classes only.** No SCSS, CSS modules or inline style
 ```
 app/                 routes and screens; app/api/ for route handlers
 lib/agents/          one file per agent: system prompt, input type, Zod output schema
-lib/harness/         runAgent(), quote verification, replay, cost tracking
+                     REFERENCE: lib/agents/clinical-documentation.ts (copy its shape)
+lib/harness/         runAgent() (the only Claude API caller), quote verification, replay, cost
+lib/fixtures/        load fixtures/<case>/ into SourceDocuments for scripts and evals
 lib/orchestrator/    run plans (concurrent review, denial) and rerun logic
 lib/db/              Drizzle schema (matches docs/architecture/database-schema.md) and queries
 lib/validation/      approval-gate checks
@@ -42,6 +44,7 @@ docs/                specs; update them when behavior changes
 
 ## Conventions
 
+- **Building an agent? Read `docs/architecture/reference-agent.md` first and copy `lib/agents/clinical-documentation.ts`.** Agents are data (`AgentDef`); they never import the SDK, call fetch, read env or touch the db.
 - TypeScript strict mode; no `any`. Types for agent outputs come from `z.infer<typeof schema>`.
 - Model names come from `process.env.MODEL_DEFAULT` (default `claude-haiku-5-5`) or a per-agent override. Never hard-code a model in a call.
 - Prompt changes bump the agent's `version` string.
@@ -54,9 +57,10 @@ docs/                specs; update them when behavior changes
 
 | Question | Doc |
 | --- | --- |
-| What should this feature do? | `docs/product/prd.md` |
+| What should this feature do? | `docs/product/prd.md`, then the story in `docs/product/user-stories.md` |
 | Which tables and fields? | `docs/architecture/database-schema.md` |
 | What does an agent take and return? | `docs/architecture/agent-specs.md` |
+| How do I write an agent? | `docs/architecture/reference-agent.md` |
 | Which API routes exist? | `docs/architecture/api.md` |
 | What does a screen look like? | `docs/product/wireframes.md` |
 | What's next to build? | `docs/plan/build-plan.md` |

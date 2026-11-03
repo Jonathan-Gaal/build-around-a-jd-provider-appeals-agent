@@ -37,6 +37,49 @@ Denials make it worse. Each one costs hours: reading the letter, finding evidenc
 
 The Ritten JD names this whole cycle: prior authorizations, concurrent reviews, denials, appeals, peer-to-peer reviews, denial-trend tracking and denial prevention.
 
+### JD coverage
+
+Every JD duty maps to stories (below) and requirements (section 7). Gaps are listed on purpose so the demo doesn't imply full coverage. Full table: [docs/research/job-descriptions.md](../research/job-descriptions.md).
+
+| JD duty | How the app covers it | Stories | Status |
+| --- | --- | --- | --- |
+| First line of defense against denials | Insurer Reviewer lists the plan's 3 likely objections with evidence before approval | US-07 | MVP |
+| Initial authorizations with ASAM documentation | ASAM/LOCUS check (FR-06); full pre-cert workflow later (FR-24) | US-04, US-18 | Partial |
+| Concurrent reviews and expiration tracking | Deadline queue, UR-1042 end to end, authorized vs requested periods | US-01–03, US-09 | MVP |
+| Auth records and unit limits | Authorization Tracking checks dates and units against the request | US-06 | MVP |
+| Retro-authorization requests | Not covered | none | Gap |
+| Payer contact, peer-to-peer, appeals | Denial parsing, similar real cases, next step, appeal letter or P2P talking points; payer contact mocked | US-10–13, US-19 | MVP |
+| Find authorization gaps | Missing notes and conflicts become blocking issues | US-05, US-06 | MVP |
+| Report denial trends | Trends by plan and care type (NY data) | US-16 | Should |
+| Coordinate with intake and clinical | Coordinator document requests with due times | US-15 | Should |
+| Clean claims with billing; ICD-10 checks | Not covered | none | Gap |
+| Commercial, Medicaid, Medicare across states | NY and CA data (commercial and Medicaid); no Medicare data | US-11 | Partial |
+
+### User stories
+
+Written for the JD's UR specialist (the UR clinician here), a UR coordinator and a UR manager. Each story's JD duty, FRs and acceptance criterion are in [user-stories.md](user-stories.md); story IDs name e2e tests.
+
+**MVP**
+
+- **US-01** Cases sorted by review deadline, so no authorization lapses.
+- **US-02** Requested and authorized periods, deadline and a draft packet ready on open.
+- **US-03** Every draft statement opens its source passage.
+- **US-04** Each ASAM or LOCUS dimension marked met, unmet or unclear, with a quote.
+- **US-05** Missing notes are blocking issues a checkbox can't close.
+- **US-06** Auth-record vs request conflicts (dates, units) shown side by side, never silently changed.
+- **US-07** The plan's 3 likely objections, with answering evidence, before approval.
+- **US-08** Correct a statement or attach a late note; only affected agents rerun.
+- **US-09** Approve one exact packet version; blocked until blocking issues are resolved.
+- **US-10** Denial letter parsed into reason, dates and appeal deadline.
+- **US-11** 3 to 5 similar real appeal decisions, won and lost, labeled by state.
+- **US-12** Recommended next step with its reason and the external-review overturn rate.
+- **US-13** Appeal letter or peer-to-peer talking points drafted, then challenged once.
+- **US-17** (manager) Reconstruct the sources, agent runs and people behind any approval.
+
+**Should:** US-14 procedural appeal checks · US-15 (coordinator) document requests with due times · US-16 (manager) denial trends by plan and care type.
+
+**Later:** US-18 initial authorization prep · US-19 payer portal submission.
+
 ## 3. Goals, scope and non-goals
 
 **MVP goals**
