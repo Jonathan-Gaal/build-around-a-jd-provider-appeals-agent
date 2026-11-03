@@ -12,6 +12,39 @@ The workspace should answer three questions quickly: **What needs my attention? 
 
 Agents gather, extract, reconcile, assemble and check. They never decide medical necessity, approve care or send anything on a clinician's behalf.
 
+### Example of success
+
+> **Concurrent review.** In fictional case UR-1042, a UR clinician opens a prepared concurrent-review packet. The workspace has already flagged the missing November 2 progress note and the gap between the requested dates (Nov 4–6) and the authorized dates (Nov 1–3). The clinician checks each draft claim against its source passage, reviews the plan's three likely objections, resolves both issues, and approves that exact packet version. It takes minutes, not hours.
+>
+> **Denial.** When the payer denies the stay, the clinician uploads the letter. They see the parsed reason and appeal deadline, 3 to 5 similar real NY or CA appeal decisions and a recommended next step. They then approve a drafted appeal through the same checks.
+>
+> **What never happens automatically:** a medical-necessity decision, a clinical determination or a submission to the payer.
+
+### Example of failure
+
+> **What failure looks like in UR-1042:**
+> - The clinician opens a polished packet that reads well.
+> - It quotes a November 2 progress note that doesn't exist.
+> - It quietly changes the request to match the authorized Nov 1–3 dates.
+> - It says the patient "meets medical necessity criteria."
+> - Approve is enabled. The clinician trusts the draft and signs it.
+>
+> **On a denial,** the app is failing if it:
+> - shows a 90% chance of winning,
+> - matches the packet to its own source case, or
+> - marks an agent that timed out as complete.
+>
+> Every one of these is a failure even if the demo looks smooth. Each maps to a guard:
+> - quote verification in code (FR-04),
+> - no silent date changes (FR-07),
+> - the clinical boundary (section 3),
+> - the approval gate (FR-11),
+> - external-review overturn rates only (FR-16),
+> - the holdout, and
+> - visible failed runs.
+>
+> Section 12 tests each one.
+
 |  |  |
 | --- | --- |
 | **Version** | 2.0, merged draft. Status: proposed MVP |

@@ -82,7 +82,7 @@ Both tracks meet at the database schema and the agent output schemas, so agree o
 | --- | --- | --- | --- |
 | 6.1 | `scripts/eval.ts` against answer keys + single-agent baseline | A | Metrics table generated |
 | 6.2 | Switch to the demo model; record cost and time | A | Under $1 and 2 minutes per run |
-| 6.3 | Demo script rehearsal (both scenes) | Both | Two clean run-throughs |
+| 6.3 | Demo script rehearsal (both scenes) | Both | Two clean run-throughs that match the PRD's Example of success step for step |
 | 6.4 | Slides: problem, demo, results, limits | Both | Deck done |
 
 ## Cut list if time runs short

@@ -6,13 +6,20 @@ Built by Jonathan Gaal and Umer Bashir for the L-2 Week 6 "build around a job de
 
 > **Synthetic data only.** No real patient information is used anywhere in this project.
 
+## What success looks like
+
+In fictional case UR-1042, a UR clinician opens a prepared concurrent-review packet. The workspace has already flagged the missing November 2 note and the gap between the requested dates (Nov 4–6) and the authorized dates (Nov 1–3). The clinician verifies each claim against its source, reviews the plan's three likely objections, resolves both issues and approves that exact packet version. When a denial comes in, the clinician sees the parsed reason and deadline, similar real NY or CA appeal decisions and a recommended next step, then approves a drafted appeal through the same checks. No clinical determination and no payer submission ever happen automatically. (From [PRD §1](docs/product/prd.md#example-of-success).)
+
+**Failure** would be a polished packet that quotes a note that doesn't exist, quietly changes the requested dates, says "meets medical necessity", and still lets the clinician approve. Every guard in the build (quote verification, the approval gate, no silent date changes, the clinical boundary) exists to prevent that. See [PRD §1](docs/product/prd.md#example-of-failure).
+
 ## Status
 
-Design complete; build starting. See the [build plan](docs/plan/build-plan.md).
+Design complete. The reference agent and harness are in `lib/` (see [reference agent](docs/architecture/reference-agent.md)); the app scaffold is next. See the [build plan](docs/plan/build-plan.md).
 
 ## Docs
 
 - [PRD](docs/product/prd.md): what we're building
+- [User stories](docs/product/user-stories.md) and [JD coverage](docs/research/job-descriptions.md#jd-coverage-what-the-app-does-for-each-duty)
 - [Docs index](docs/README.md): user flow, agents, harness, tech stack, data and decisions
 - [CLAUDE.md](CLAUDE.md): rules for AI coding assistants
 

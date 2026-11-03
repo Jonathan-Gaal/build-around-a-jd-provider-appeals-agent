@@ -4,7 +4,7 @@ Instructions for AI coding assistants (Claude Code, Cursor, Copilot and others) 
 
 ## What this project is
 
-A behavioral-health utilization review (UR) workspace. Agents prepare concurrent-review packets and denial responses; a clinician verifies and approves everything. Spec: `docs/product/prd.md`. Start there for any feature question.
+A behavioral-health utilization review (UR) workspace. Agents prepare concurrent-review packets and denial responses; a clinician verifies and approves everything. Spec: `docs/product/prd.md`. Start there for any feature question. The target is the PRD's **Example of success** (section 1): every milestone should move UR-1042 and the denial demo toward it, and nothing in it may happen automatically that it says a clinician does.
 
 ## Hard rules
 
