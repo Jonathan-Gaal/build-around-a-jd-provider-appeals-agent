@@ -1,5 +1,7 @@
 # Agents
 
+> Updated by the merged [PRD](../product/prd.md): Umer's Case Assembly step is merged into Drafting (now "Case Assembly and Drafting"), and concurrent review (UR-1042) is the base workflow. How each agent is called is in [agent-harness.md](agent-harness.md).
+
 A plain TypeScript orchestrator on the Next.js server decides which agents run and in what order. It is ordinary code, not an LLM, which keeps runs predictable, testable and cheap. Each agent is one Claude call with its own instructions, and it returns structured JSON. Every fact an agent states carries a quote from its source. That is what "source-linked facts" means on the clinician's screen.
 
 **Count:** 7 LLM agents plus the code orchestrator.

@@ -16,3 +16,10 @@ Decisions made during design, Nov 2026.
 | Keep both NY and CA datasets, never pool their rates | They cover different care types. See [data assessment](../data/data-assessment.md) |
 | Hold out the 5 source cases behind the synthetic packets | Otherwise the agent finds its own answer key |
 | Test on Haiku 5.5, demo on Sonnet or Opus 5.5 | Keeps the $40 budget. See [budget](budget.md) |
+| Merge Umer's concurrent-review PRD with ours | Concurrent review (UR-1042) is the base workflow; denials reuse its evidence, issue and approval controls. See [PRD](../product/prd.md) |
+| Merge Case Assembly into Drafting; Umer's Denial and Appeals agent = Case Match + Drafting | Keeps 7 LLM agents and the budget unchanged |
+| Approval is bound to a packet version and hash, and any material change invalidates it | From Umer's PRD; makes approval auditable |
+| Custom thin agent harness on `@anthropic-ai/sdk`, no agent framework | One JSON call per agent; we need control over validation, citations, audit and cost. See [agent harness](agent-harness.md) |
+| Agents get no tools | They can't take actions, which limits prompt-injection damage |
+| Quotes are verified in code against the source text | Cheapest strong guard against invented facts |
+| Postgres + Drizzle, Auth.js, Zod, Vercel | See [tech stack](tech-stack.md) |
