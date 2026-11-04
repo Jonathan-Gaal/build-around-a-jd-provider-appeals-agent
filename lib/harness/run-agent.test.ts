@@ -6,7 +6,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
 import { clinicalDocumentationAgent, computeDateCoverage, type ClinicalDocumentationInput } from "../agents/clinical-documentation";
-import type Anthropic from "@anthropic-ai/sdk";
 import { runAgent, type AgentRunRecord, type ClaudeClient } from "./run-agent";
 
 const input: ClinicalDocumentationInput = {
