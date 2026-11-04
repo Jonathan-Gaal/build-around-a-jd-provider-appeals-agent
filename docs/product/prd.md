@@ -72,7 +72,7 @@ The other roles in a UR team are named so the design leaves room for them. None 
 
 **Where the persona comes from.** It is drawn from the Ritten JD and public descriptions of UR work. We haven't interviewed UR clinicians. Treat it as an assumption to check, not as user research.
 
-**The problem.** Concurrent reviews require recent notes, payer requirements, service dates and existing authorizations to be reconciled under a deadline, and these sit in different systems. An unsupported statement, a missing note or a date conflict is hard to spot in a polished draft, and each one invites a denial.
+**The problem.** Concurrent reviews require recent notes, payer requirements, service dates and existing authorizations to be reconciled under a deadline, and these sit in different systems. An unsupported statement, a missing note or a date conflict is hard to spot in a polished draft, and each one invites a denial. Our hypothesis, not yet tested, is that some denials could be avoided if the first request answered what the plan's reviewer would ask; others happen because the record doesn't support the request, and better drafting doesn't fix those.
 
 *Assumed, not measured:* we believe assembling and checking a concurrent-review packet takes a clinician much longer by hand than reviewing a prepared one, and that each denial adds more work (reading the letter, finding evidence, writing the appeal, tracking the deadline). We have no published time study to cite. Section 13 measures our own preparation time for UR-1042 against a manual walk-through, and we report it as one case, not a general result.
 
@@ -87,7 +87,7 @@ Gaps are listed on purpose so the demo doesn't imply full coverage. Full table: 
 | Concurrent reviews and expiration tracking | Deadline queue, UR-1042 end to end, authorized vs requested periods | US-01–03, US-09 | MVP |
 | Auth records and unit limits | Dates compared in code against the request | US-06 | MVP |
 | Find authorization gaps | Missing notes and date conflicts become blocking issues | US-05, US-06 | MVP |
-| First line of defense against denials | Quality lists the plan's 3 likely objections before approval | US-07 | Should |
+| First line of defense against denials | Quality lists the concerns a plan reviewer could raise before sign-off | US-07 | Should |
 | Initial authorizations with ASAM documentation | ASAM/LOCUS documentation labels (FR-06); pre-cert workflow later (FR-24) | US-04, US-18 | Should / Later |
 | Payer contact, peer-to-peer, appeals | Denial parsing, similar real cases, next step, drafted appeal | US-10–13, US-19 | Later (one denial demo if time allows) |
 | Report denial trends | Trends by plan and care type (NY data) | US-16 | Later |
@@ -110,7 +110,7 @@ Each story's JD duty, FRs and acceptance criterion are in [user-stories.md](user
 - **US-08** Correct a statement or attach a late note, and the packet is rebuilt and rechecked.
 - **US-09** Approve one exact packet version; blocked until blocking issues are resolved.
 
-**Should, in build order:** US-07 the plan's 3 likely objections · US-04 ASAM or LOCUS documentation labels.
+**Should, in build order:** US-07 concerns a plan reviewer could raise · US-04 ASAM or LOCUS documentation labels.
 
 **Later:** US-10 to US-13 denial handling (one denial demo if time allows) · US-14 procedural appeal checks · US-15 coordinator requests · US-16 denial trends · US-17 audit reconstruction for a manager · US-18 initial authorization prep · US-19 payer portal submission · US-20 appeal-chain tracking.
 
@@ -125,7 +125,7 @@ Each story's JD duty, FRs and acceptance criterion are in [user-stories.md](user
 
 **MVP scope:** a case queue; a case workspace with Summary, Evidence, Issues and Approval screens; the UR-1042 document set; three LLM agents and a code orchestrator; a simple approval gate bound to a packet hash; an audit row for every state change; one demo clinician account.
 
-**Should (only after every Must passes, in this order):** likely objections (FR-08), criteria documentation labels (FR-06), targeted reruns (FR-10), retrying only failed agents (FR-26b).
+**Should (only after every Must passes, in this order):** the challenge review (FR-08), criteria documentation labels (FR-06), targeted reruns (FR-10), retrying only failed agents (FR-26b).
 
 **Later (designed, not built for Nov 12):** the denial flow (FR-14 to FR-17), appeal-chain tracking (FR-25), parsing every payer letter type (FR-14), denial trends (FR-22), coordinator and supervisor workflows (FR-20), policy freshness (FR-19), procedural appeal checks (FR-21), the single-agent baseline comparison, denial packets B to E, and the full audit history (FR-13b). If the buffer days allow, we show **one** denial demo on packet A. It isn't promised.
 
@@ -172,10 +172,12 @@ The demo runs on a fixed server-side clock of November 3, 2026, labeled on scree
 3. **Verify evidence.** Select a statement to see its source passage, with document date, author and version.
 4. **Resolve issues.** Attach the late November 2 note, which rebuilds and rechecks the packet. Record the verified dates and the reason for the date conflict. A checkbox alone can't close either issue.
 5. **Review approval.** Inspect the final packet and validation result. Approve is available only when no blocking issue, unsupported material claim or failed run remains, and the screen names any blocker.
-6. **Approve the version.** The system records the clinician, time, packet version and hash. The case becomes "Approved"; nothing is sent.
+6. **Approve the version.** The system records the clinician, time, packet version and hash. The case becomes "Signed off"; nothing is sent.
 7. **Reopen on change.** Any later change to a source, a date or the packet content invalidates the approval and returns the case to review.
 
-**States (MVP):** Processing → Needs review → Ready for approval → Approved. A failed run shows as Incomplete. An invalidated approval returns to Needs review. Payer-response and appeal states come with the later denial flow.
+**States (MVP):** Processing → Needs review → Ready for sign-off → Signed off. A failed run shows as Incomplete. An invalidated sign-off returns to Needs review. Payer-response and appeal states come with the later denial flow.
+
+**Words:** *sign-off* means the clinician approving a packet version. *Authorized* means the payer approving days or services. The PRD never uses "approved" for both.
 
 ## 6. Screens
 
@@ -209,7 +211,7 @@ Content is always labeled as agent-prepared, source-verified, clinician-edited o
 | FR-13 | Must | Write an audit row for every case state change, issue resolution and approval |
 | FR-18 | Must | Synthetic-data-only mode, with no production connector and no way to send to a payer |
 | FR-26 | Must | Give every agent call a timeout and one retry. Show a failed or timed-out agent by name, keep completed results, and block approval until a run completes |
-| FR-08 | Should 1 | The Quality agent also lists the plan's 3 most likely objections, with the evidence that would answer each |
+| FR-08 | Should 1 | The Quality agent also runs a challenge review: the concerns a plan reviewer could raise (zero or more), each with the evidence that would answer it. Whether this prevents denials is a hypothesis we test, not a promise |
 | FR-06 | Should 2 | Label each LOCUS dimension documented, not found or unclear, with the supporting quote. Labels describe the record, not whether criteria are met |
 | FR-10 | Should 3 | After a correction or new document, rerun only the affected agents. Until then, the whole three-call run reruns |
 | FR-26b | Should 4 | Retry only the failed agents, within a per-run call and token budget |
@@ -238,12 +240,12 @@ The orchestrator is plain TypeScript on the Next.js server, not an LLM. **The MV
 | Approval gate | Code | Computes blockers and the packet hash | 0 |
 | **Clinical Documentation** | LLM | Candidate facts with passage-level quotes; ambiguous records | 1 |
 | **Case Assembly and Drafting** | LLM | The review packet, built only from verified facts, each sentence citing its facts | 1 |
-| **Independent Quality** | LLM | Checks the draft against the original documents, not just the draft, for unsupported claims, wrong dates and omissions. With FR-08, it also lists likely objections | 1 |
+| **Independent Quality** | LLM | Checks the draft against the original documents, not just the draft, for unsupported claims, wrong dates and omissions. With FR-08, it also lists the concerns a plan reviewer could raise | 1 |
 | **Total** | | | **3** |
 
 **Run order:** the code checks and Clinical Documentation run first, then Drafting, then Quality, then the clinician. Attaching the late note or correcting a date reruns all three agents (about three calls), until targeted reruns (FR-10) are built.
 
-**What moved to code or later.** Authorization Tracking is now code: comparing dates doesn't need a model. Payer Policy's criteria check is Should 2 (FR-06). Insurer Reviewer folds into Quality as Should 1 (FR-08). Case Match belongs to the later denial flow. Each agent's design is in [agent-specs.md](../architecture/agent-specs.md).
+**What moved to code or later.** Authorization Tracking is now code: comparing dates doesn't need a model. Payer Policy's criteria check is Should 2 (FR-06). Insurer Reviewer becomes Quality's challenge review, Should 1 (FR-08). Case Match belongs to the later denial flow. Each agent's design is in [agent-specs.md](../architecture/agent-specs.md).
 
 **Timeouts and failure.** Each call has a timeout and one retry, and agents can't trigger more calls. If an agent fails or times out, the run shows as Incomplete with the agent's name and the reason, keeps the results that succeeded, and blocks approval. Nothing is shown as complete when it isn't.
 
@@ -313,7 +315,7 @@ Each output records run ID, input versions, time, model version, findings, quote
 | Prototype boundary | Nothing in the MVP can send a packet to a payer or ingest real PHI |
 | Clinical boundary | No agent output or label states a medical-necessity, treatment or coverage decision |
 
-**Should:** Denial prevention: Quality shows 3 objections, each tied to chart evidence or a gap, before approval. Criteria labels: each LOCUS dimension shows a label and its quote. Targeted rework: correcting an extracted date reruns Drafting and Quality only.
+**Should:** Challenge review: Quality lists any concerns a plan reviewer could raise, each tied to chart evidence or a gap, before sign-off. Criteria labels: each LOCUS dimension shows a label and its quote. Targeted rework: correcting an extracted date reruns Drafting and Quality only.
 
 **Later:** denial handling, holdout, letter parsing and appeal tracking criteria move with the denial flow.
 
