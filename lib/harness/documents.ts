@@ -12,6 +12,9 @@ export type DocumentType =
   | "progress_note"
   | "authorization_record"
   | "denial_letter"
+  | "approval_letter"
+  | "request_for_info_letter"
+  | "appeal_decision_letter"
   | "policy"
   | "criteria_summary";
 
