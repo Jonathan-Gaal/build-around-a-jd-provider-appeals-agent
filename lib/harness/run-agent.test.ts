@@ -5,6 +5,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { clinicalDocumentationAgent, computeDateCoverage, type ClinicalDocumentationInput } from "../agents/clinical-documentation";
+import type Anthropic from "@anthropic-ai/sdk";
 import { runAgent, type AgentRunRecord, type ClaudeClient } from "./run-agent";
 
 const input: ClinicalDocumentationInput = {
@@ -20,9 +21,9 @@ const input: ClinicalDocumentationInput = {
 
 const usage = { input_tokens: 1000, output_tokens: 500, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 };
 
-function fakeClient(...responses: unknown[]): ClaudeClient & { calls: any[] } {
-  const calls: any[] = [];
-  const parse = vi.fn(async (params: any) => {
+function fakeClient(...responses: unknown[]): ClaudeClient & { calls: Anthropic.MessageCreateParamsNonStreaming[] } {
+  const calls: Anthropic.MessageCreateParamsNonStreaming[] = [];
+  const parse = vi.fn(async (params: Anthropic.MessageCreateParamsNonStreaming) => {
     calls.push(params);
     const next = responses.shift();
     if (next instanceof Error) throw next;
@@ -61,7 +62,8 @@ describe("runAgent", () => {
     expect(res.costUsd).toBeCloseTo(1000 * 0.1e-6 + 500 * 0.5e-6);
     expect(records).toHaveLength(1);
     // System prompt is cached and documents are in the user message, not the system prompt.
-    expect(client.calls[0].system[0].cache_control).toEqual({ type: "ephemeral" });
+    const system = client.calls[0].system as Anthropic.TextBlockParam[];
+    expect(system[0].cache_control).toEqual({ type: "ephemeral" });
     expect(client.calls[0].messages[0].content).toContain('<document id="note-1"');
     expect(client.calls[0].messages[0].content).toContain("2026-11-02: NO NOTE");
   });
