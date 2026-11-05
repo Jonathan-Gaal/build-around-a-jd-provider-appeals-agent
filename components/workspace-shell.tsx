@@ -18,7 +18,7 @@ export const panelClass = (night: boolean) => `min-w-0 rounded-xl border p-4 sm:
 export const mutedClass = (night: boolean) => night ? "text-[#a9bbad]" : "text-[#687c6d]";
 export const buttonClass = "inline-flex items-center justify-center rounded-lg bg-[#255e4b] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#1f513f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6a9b76]";
 
-const links = [{ href: "/", label: "Work queue" }, { href: "/my-reviews", label: "My reviews" }, { href: "/requests", label: "Requests" }, { href: "/activity", label: "Activity" }];
+const links = [{ href: "/", label: "Work queue" }, { href: "/my-reviews", label: "My reviews" }, { href: "/requests", label: "Requests" }, { href: "/activity", label: "Activity" }, { href: "/roles", label: "Role flows" }];
 export function WorkspaceShell({ children, title, caseNavigation, headerDetail }: { children: ReactNode; title: string; caseNavigation?: ReactNode; headerDetail?: ReactNode }) {
   const { night, toggle } = useWorkspaceTheme();
   const path = usePathname();
