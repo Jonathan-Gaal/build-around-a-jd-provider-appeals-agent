@@ -1,0 +1,376 @@
+{
+  "facts": [
+    {
+      "id": "f1",
+      "category": "risk",
+      "statement": "Patient endorsed active suicidal ideation with plan and intent at admission on 2026-11-01.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Endorses active suicidal ideation with plan and intent."
+        }
+      ]
+    },
+    {
+      "id": "f2",
+      "category": "risk",
+      "statement": "The patient stated a plan to overdose before admission, following a goodbye note written on October 31.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "The patient stated a plan to overdose"
+        },
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "wrote a goodbye note to a sibling"
+        }
+      ]
+    },
+    {
+      "id": "f3",
+      "category": "risk",
+      "statement": "A preparatory act in the past week was documented on the Columbia Suicide Severity Rating Scale at admission.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Columbia Suicide Severity Rating Scale positive for active ideation with plan and intent, and a preparatory act in the past week."
+        }
+      ]
+    },
+    {
+      "id": "f4",
+      "category": "risk",
+      "statement": "The 2026-11-01 progress note assessed the patient as high risk and stated continued need for inpatient level of care.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "7193414f-54fa-59d4-a197-6e6c9f9fc000",
+          "text": "High risk."
+        },
+        {
+          "documentId": "7193414f-54fa-59d4-a197-6e6c9f9fc000",
+          "text": "Continues to require inpatient level of care."
+        }
+      ]
+    },
+    {
+      "id": "f5",
+      "category": "risk",
+      "statement": "On 2026-11-01 the patient was on close observation.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "7193414f-54fa-59d4-a197-6e6c9f9fc000",
+          "text": "On close observation."
+        }
+      ]
+    },
+    {
+      "id": "f6",
+      "category": "risk",
+      "statement": "Observation was reduced to every 15 minutes on November 2, as documented in the 2026-11-03 progress note.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Observation reduced to every 15 minutes on November 2."
+        }
+      ]
+    },
+    {
+      "id": "f7",
+      "category": "risk",
+      "statement": "On 2026-11-03 the patient reported passive suicidal ideation without plan or intent.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Patient reports passive suicidal ideation without plan or intent."
+        }
+      ]
+    },
+    {
+      "id": "f8",
+      "category": "risk",
+      "statement": "The 2026-11-03 progress note rated risk as moderate and cited the recent preparatory act, ambivalence about safety after discharge, and living alone.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Risk remains moderate given recent preparatory act, ambivalence about safety after discharge, and living alone."
+        }
+      ]
+    },
+    {
+      "id": "f9",
+      "category": "symptoms",
+      "statement": "On 2026-11-01 the patient was tearful and stated \"I still want to die\".",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "7193414f-54fa-59d4-a197-6e6c9f9fc000",
+          "text": "I still want to die"
+        },
+        {
+          "documentId": "7193414f-54fa-59d4-a197-6e6c9f9fc000",
+          "text": "Patient tearful"
+        }
+      ]
+    },
+    {
+      "id": "f10",
+      "category": "symptoms",
+      "statement": "The patient was diagnosed with major depressive disorder, recurrent, severe, without psychotic features at admission.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Major depressive disorder, recurrent, severe, without psychotic features."
+        }
+      ]
+    },
+    {
+      "id": "f11",
+      "category": "symptoms",
+      "statement": "At admission the patient reported two weeks of worsening depressed mood after job loss.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Two weeks of worsening depressed mood after job loss"
+        }
+      ]
+    },
+    {
+      "id": "f12",
+      "category": "symptoms",
+      "statement": "On 2026-11-03 the patient's mood was depressed with a slightly brighter affect and limited future orientation.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Depressed mood, slightly brighter affect."
+        },
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Future orientation limited."
+        }
+      ]
+    },
+    {
+      "id": "f13",
+      "category": "symptoms",
+      "statement": "The 2026-11-03 progress note documented partial improvement.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Partial improvement."
+        }
+      ]
+    },
+    {
+      "id": "f14",
+      "category": "withdrawal",
+      "statement": "The patient reported sleeping 3 to 4 hours a night before admission, and the 2026-11-01 note recorded 3 hours of sleep.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "sleeping 3 to 4 hours a night"
+        },
+        {
+          "documentId": "7193414f-54fa-59d4-a197-6e6c9f9fc000",
+          "text": "Slept 3 hours."
+        }
+      ]
+    },
+    {
+      "id": "f15",
+      "category": "medical",
+      "statement": "The patient had an 8-pound weight loss and poor appetite before admission.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "poor appetite with an 8-pound weight loss"
+        }
+      ]
+    },
+    {
+      "id": "f16",
+      "category": "medical",
+      "statement": "The patient ate 25% of meals on 2026-11-01 and 50% of meals on 2026-11-03.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "7193414f-54fa-59d4-a197-6e6c9f9fc000",
+          "text": "Ate 25% of meals."
+        },
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Ate 50% of meals."
+        }
+      ]
+    },
+    {
+      "id": "f17",
+      "category": "medical",
+      "statement": "The patient has a history of hypothyroidism, which is treated.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Hypothyroidism, treated."
+        }
+      ]
+    },
+    {
+      "id": "f18",
+      "category": "medical",
+      "statement": "Urine drug screen was negative at admission.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Urine drug screen negative."
+        }
+      ]
+    },
+    {
+      "id": "f19",
+      "category": "functioning",
+      "statement": "At admission the patient was documented as disheveled with poor insight and judgment.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Disheveled, psychomotor slowing"
+        },
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Insight and judgment poor."
+        }
+      ]
+    },
+    {
+      "id": "f20",
+      "category": "engagement",
+      "statement": "On 2026-11-03 the patient attended 2 of 4 groups.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Attended 2 of 4 groups."
+        }
+      ]
+    },
+    {
+      "id": "f21",
+      "category": "engagement",
+      "statement": "Before admission the patient was nonadherent to sertraline for six weeks and outpatient therapy had stopped in July 2026.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Prescribed sertraline 100 mg; nonadherent for six weeks."
+        },
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Outpatient therapy stopped in July 2026 after insurance change."
+        }
+      ]
+    },
+    {
+      "id": "f22",
+      "category": "prior_treatment",
+      "statement": "The patient had one prior inpatient admission in 2021 for suicidal ideation.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "One prior inpatient admission in 2021 for suicidal ideation."
+        }
+      ]
+    },
+    {
+      "id": "f23",
+      "category": "environment",
+      "statement": "The patient lives alone in an apartment, and the sibling lives 40 minutes away.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Lives alone in an apartment."
+        },
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Sibling lives 40 minutes away."
+        }
+      ]
+    },
+    {
+      "id": "f24",
+      "category": "environment",
+      "statement": "A family meeting had not been held as of 2026-11-03 because the sibling was unavailable until November 4.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Family meeting not yet held; sibling unavailable until November 4."
+        }
+      ]
+    },
+    {
+      "id": "f25",
+      "category": "discharge_plan",
+      "statement": "The initial treatment plan listed the discharge plan as to be determined and an expected length of stay of 5 to 7 days.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "4be1cac2-2c52-5bbd-ab8e-7436a84447ff",
+          "text": "Discharge plan: To be determined."
+        },
+        {
+          "documentId": "4be1cac2-2c52-5bbd-ab8e-7436a84447ff",
+          "text": "Expected length of stay: 5 to 7 days."
+        }
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "item": "No progress note for 2026-11-02",
+      "why": "The 2026-11-02 status, including the observation reduction referenced later, cannot be verified from a daily note for that day.",
+      "severity": "high"
+    },
+    {
+      "item": "No documented discharge plan; the initial treatment plan says to be determined and the 2026-11-03 note only states to begin discharge planning",
+      "why": "A reviewer cannot evaluate discharge criteria, step-down, or aftercare without a documented plan.",
+      "severity": "high"
+    },
+    {
+      "item": "Initial treatment plan shows no signature, date of review, or update after 2026-11-01",
+      "why": "A reviewer needs a signed and current treatment plan to confirm goals match the patient's status on 2026-11-03.",
+      "severity": "medium"
+    },
+    {
+      "item": "Sertraline dose discrepancy: intake lists prior prescription of 100 mg while the plan restarts at 50 mg and the 2026-11-03 note increases to 100 mg",
+      "why": "The dose history should be clarified to support the medication plan and the reason for the change.",
+      "severity": "low"
+    },
+    {
+      "item": "Concurrent review request for November 4 to 6 is marked as a draft and no submission or signature is documented; the approved authorization ends November 3",
+      "why": "Continued-stay coverage depends on a submitted request before the stated deadline of November 3, 5:00 p.m. Eastern.",
+      "severity": "medium"
+    },
+    {
+      "item": "Family meeting and safety planning status not documented beyond the plan to hold it on November 4",
+      "why": "Safety planning and family involvement were listed as interventions on 2026-11-01 and their completion is not recorded.",
+      "severity": "medium"
+    }
+  ]
+}

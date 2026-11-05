@@ -1,0 +1,430 @@
+{
+  "facts": [
+    {
+      "id": "f1",
+      "category": "risk",
+      "statement": "Day 1 progress note documents active suicidal ideation with plan and intent uncertain.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "7193414f-54fa-59d4-a197-6e6c9f9fc000",
+          "text": "active suicidal ideation with plan, intent uncertain"
+        }
+      ]
+    },
+    {
+      "id": "f2",
+      "category": "risk",
+      "statement": "Intake documents a stated plan to overdose and intent to act within the coming weekend.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "stated a plan to overdose and intent to act"
+        }
+      ]
+    },
+    {
+      "id": "f3",
+      "category": "risk",
+      "statement": "Intake documents a preparatory act in the past week.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "a preparatory act in the past week"
+        }
+      ]
+    },
+    {
+      "id": "f4",
+      "category": "risk",
+      "statement": "Columbia Suicide Severity Rating Scale was positive for active ideation with plan and intent at intake.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Columbia Suicide Severity Rating Scale positive for active ideation with plan and intent"
+        }
+      ]
+    },
+    {
+      "id": "f5",
+      "category": "risk",
+      "statement": "Intake assessment records high acute risk.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "High acute risk."
+        }
+      ]
+    },
+    {
+      "id": "f6",
+      "category": "risk",
+      "statement": "Patient was admitted to inpatient psychiatry on close observation.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Admit to inpatient psychiatry on close observation."
+        }
+      ]
+    },
+    {
+      "id": "f7",
+      "category": "risk",
+      "statement": "Day 2 progress note documents suicidal ideation with plan and denial of current intent on the unit.",
+      "serviceDate": "2026-11-02",
+      "quotes": [
+        {
+          "documentId": "22c75092-1339-5467-a663-9ed91b87b1ec",
+          "text": "Suicidal ideation with plan, denies current intent on the unit."
+        }
+      ]
+    },
+    {
+      "id": "f8",
+      "category": "risk",
+      "statement": "Observation was stepped down to every 15 minutes on day 2.",
+      "serviceDate": "2026-11-02",
+      "quotes": [
+        {
+          "documentId": "22c75092-1339-5467-a663-9ed91b87b1ec",
+          "text": "Observation stepped down to every 15 minutes with continued monitoring."
+        }
+      ]
+    },
+    {
+      "id": "f9",
+      "category": "risk",
+      "statement": "Day 3 progress note documents passive suicidal ideation without plan.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Passive SI, no plan."
+        }
+      ]
+    },
+    {
+      "id": "f10",
+      "category": "risk",
+      "statement": "Day 3 assessment rates risk as moderate and cites a recent preparatory act, ambivalence about safety after discharge, and living alone.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Risk remains moderate given recent preparatory act, ambivalence about safety after discharge, and living alone."
+        }
+      ]
+    },
+    {
+      "id": "f11",
+      "category": "risk",
+      "statement": "Intake documents alcohol use of 2 to 3 beers on weekends and denies other drugs.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Drinks 2 to 3 beers on weekends."
+        }
+      ]
+    },
+    {
+      "id": "f12",
+      "category": "symptoms",
+      "statement": "Intake describes two weeks of worsening depressed mood after job loss.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Two weeks of worsening depressed mood after job loss"
+        }
+      ]
+    },
+    {
+      "id": "f13",
+      "category": "symptoms",
+      "statement": "Day 2 progress note describes suicidal thoughts as quieter but still present.",
+      "serviceDate": "2026-11-02",
+      "quotes": [
+        {
+          "documentId": "22c75092-1339-5467-a663-9ed91b87b1ec",
+          "text": "the suicidal thoughts are \"quieter\" but still present"
+        }
+      ]
+    },
+    {
+      "id": "f14",
+      "category": "symptoms",
+      "statement": "Day 3 progress note documents depressed mood with slightly brighter affect.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Depressed mood, slightly brighter affect."
+        }
+      ]
+    },
+    {
+      "id": "f15",
+      "category": "symptoms",
+      "statement": "Day 1 progress note records 3 hours of sleep.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "7193414f-54fa-59d4-a197-6e6c9f9fc000",
+          "text": "Slept 3 hours."
+        }
+      ]
+    },
+    {
+      "id": "f16",
+      "category": "symptoms",
+      "statement": "Day 3 progress note records 5 hours of sleep.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Slept 5 hours."
+        }
+      ]
+    },
+    {
+      "id": "f17",
+      "category": "functioning",
+      "statement": "Day 1 progress note records eating 25% of meals.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "7193414f-54fa-59d4-a197-6e6c9f9fc000",
+          "text": "Ate 25% of meals."
+        }
+      ]
+    },
+    {
+      "id": "f18",
+      "category": "functioning",
+      "statement": "Day 3 progress note records eating 50% of meals.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Ate 50% of meals."
+        }
+      ]
+    },
+    {
+      "id": "f19",
+      "category": "functioning",
+      "statement": "Intake records insight and judgment as poor.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Insight and judgment poor."
+        }
+      ]
+    },
+    {
+      "id": "f20",
+      "category": "functioning",
+      "statement": "Day 3 progress note records limited future orientation.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Future orientation limited."
+        }
+      ]
+    },
+    {
+      "id": "f21",
+      "category": "medical",
+      "statement": "Intake lists hypothyroidism as treated.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Hypothyroidism, treated."
+        }
+      ]
+    },
+    {
+      "id": "f22",
+      "category": "medical",
+      "statement": "Patient refused the evening sertraline dose on day 2, citing nausea.",
+      "serviceDate": "2026-11-02",
+      "quotes": [
+        {
+          "documentId": "22c75092-1339-5467-a663-9ed91b87b1ec",
+          "text": "Refused evening dose of sertraline, citing nausea."
+        }
+      ]
+    },
+    {
+      "id": "f23",
+      "category": "engagement",
+      "statement": "Patient attended 1 group on day 2.",
+      "serviceDate": "2026-11-02",
+      "quotes": [
+        {
+          "documentId": "22c75092-1339-5467-a663-9ed91b87b1ec",
+          "text": "Attended 1 group."
+        }
+      ]
+    },
+    {
+      "id": "f24",
+      "category": "engagement",
+      "statement": "Patient attended 2 of 4 groups on day 3.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Attended 2 of 4 groups."
+        }
+      ]
+    },
+    {
+      "id": "f25",
+      "category": "prior_treatment",
+      "statement": "Intake documents one prior inpatient admission in 2021 for suicidal ideation.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "One prior inpatient admission in 2021 for suicidal ideation."
+        }
+      ]
+    },
+    {
+      "id": "f26",
+      "category": "prior_treatment",
+      "statement": "Intake documents that outpatient therapy stopped in July 2026 after an insurance change.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Outpatient therapy stopped in July 2026 after insurance change."
+        }
+      ]
+    },
+    {
+      "id": "f27",
+      "category": "prior_treatment",
+      "statement": "Intake documents nonadherence to prescribed sertraline for six weeks before admission.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Prescribed sertraline 100 mg; nonadherent for six weeks."
+        }
+      ]
+    },
+    {
+      "id": "f28",
+      "category": "environment",
+      "statement": "Intake documents that the patient lives alone in an apartment.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Lives alone in an apartment."
+        }
+      ]
+    },
+    {
+      "id": "f29",
+      "category": "environment",
+      "statement": "Intake documents that the patient's sibling lives 40 minutes away.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "b4d10e3b-1019-522b-ac5d-de1e1170dab5",
+          "text": "Sibling lives 40 minutes away."
+        }
+      ]
+    },
+    {
+      "id": "f30",
+      "category": "discharge_plan",
+      "statement": "Discharge plan is recorded as to be determined in the initial treatment plan.",
+      "serviceDate": "2026-11-01",
+      "quotes": [
+        {
+          "documentId": "4be1cac2-2c52-5bbd-ab8e-7436a84447ff",
+          "text": "Discharge plan: To be determined."
+        }
+      ]
+    },
+    {
+      "id": "f31",
+      "category": "discharge_plan",
+      "statement": "Day 3 progress note states discharge planning has begun and considers a partial hospitalization program after discharge.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Begin discharge planning; consider partial hospitalization program after discharge."
+        }
+      ]
+    },
+    {
+      "id": "f32",
+      "category": "discharge_plan",
+      "statement": "Day 3 progress note states the family meeting has not been held and is scheduled for November 4.",
+      "serviceDate": "2026-11-03",
+      "quotes": [
+        {
+          "documentId": "16a99ac8-966f-58df-af5b-37a5df1f4402",
+          "text": "Family meeting not yet held; sibling unavailable until November 4."
+        }
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "item": "No documented discharge plan or discharge criteria in any note; treatment plan says discharge plan to be determined",
+      "why": "A reviewer cannot assess the step-down or discharge pathway without a documented plan.",
+      "severity": "high"
+    },
+    {
+      "item": "Concurrent review request for November 4 through November 6 is a draft with no documented submission or decision",
+      "why": "Authorization approved only through November 3, so the status of any additional days is unclear.",
+      "severity": "high"
+    },
+    {
+      "item": "Initial treatment plan dated 2026-11-01 (version 1) has no documented update and no signature",
+      "why": "The plan does not reflect the day 2 and day 3 status, and a reviewer needs a current signed plan.",
+      "severity": "medium"
+    },
+    {
+      "item": "Conflicting documentation of intent: intake records intent to act this weekend while the day 1 progress note records intent uncertain",
+      "why": "Conflicting intent documentation affects how the risk picture is interpreted.",
+      "severity": "medium"
+    },
+    {
+      "item": "Day 2 progress note is a late entry signed November 3 with no original entry time documented",
+      "why": "A reviewer needs to know when the day 2 status was actually documented.",
+      "severity": "medium"
+    },
+    {
+      "item": "No structured risk instrument repeated in progress notes after intake; safety plan exists only as a first draft on 2026-11-02",
+      "why": "Current risk status and safety planning progress are not fully documented.",
+      "severity": "medium"
+    },
+    {
+      "item": "Family meeting not held as of 2026-11-03; sibling unavailable until November 4",
+      "why": "Family involvement and the home support plan are undocumented, which a reviewer would ask about.",
+      "severity": "medium"
+    },
+    {
+      "item": "Day 2 plan to address medication side effects does not specify the intervention or sertraline dose change",
+      "why": "Medication plan and response to refused doses are unclear.",
+      "severity": "low"
+    }
+  ]
+}

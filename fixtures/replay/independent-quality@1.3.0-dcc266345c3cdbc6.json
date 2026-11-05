@@ -1,0 +1,52 @@
+{
+  "checks": [
+    {
+      "name": "unsupported_synthesis",
+      "result": "fail",
+      "detail": "Claim-25 says the 2026-11-03 findings describe partial improvement in mood, affect, sleep and meal intake. The 2026-11-03 note (f13) documents 'Partial improvement' as a general assessment, and separately records 'Depressed mood, slightly brighter affect' (f12), 'Slept 5 hours' and 'Ate 50% of meals' (f16). The note does not state that mood or sleep improved, so the improvement attribution for mood and sleep is not supported by the quoted evidence.",
+      "affected": [
+        "claim-25"
+      ]
+    },
+    {
+      "name": "quote_fidelity",
+      "result": "needs_review",
+      "detail": "Claim-14 drops the quotation marks around the patient's words 'I still want to die' (f9), turning direct speech into narration. Claim-8 is labeled direct_quote but its text is a paraphrase-level restatement of the note sentence and is not presented as a quotation. Clinician should confirm the wording and sourceKind.",
+      "affected": [
+        "claim-8",
+        "claim-14"
+      ]
+    },
+    {
+      "name": "causal_wording",
+      "result": "needs_review",
+      "detail": "Claim-13 states the family meeting had not been held 'because' the sibling was unavailable. The 2026-11-03 note (f24) records both facts in one sentence but does not state the causal link. Clinician should confirm whether the causal wording is supported.",
+      "affected": [
+        "claim-13"
+      ]
+    },
+    {
+      "name": "requested_authorized_period_distinction",
+      "result": "pass",
+      "detail": "The draft contains no requested or authorized period claims. Code adds these after review, so their absence is not a defect here.",
+      "affected": []
+    },
+    {
+      "name": "claim_quote_support_review",
+      "result": "pass",
+      "detail": "Claims 1-7, 9-12, 15-24 are consistent with the quoted source text for their supplied fact IDs, including dates and numbers, and no new facts or dates were introduced.",
+      "affected": []
+    }
+  ],
+  "issues": [
+    {
+      "type": "missing_document",
+      "severity": "major",
+      "blocking": true,
+      "description": "No progress note for 2026-11-02 is among the supplied documents. Claim-6 relies on the observation reduction on November 2 as documented in the 2026-11-03 note, and the 2026-11-02 status cannot be verified from a daily note.",
+      "requiredDocumentType": "progress_note",
+      "serviceDate": "2026-11-02",
+      "sendBackTo": null
+    }
+  ]
+}
