@@ -45,6 +45,10 @@ jobs:
         run: npm test
       - name: Production build
         run: npm run build
+      - name: Demo mode plays every story with no database (bundled recordings)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:demo
       - name: Integration tests (real PostgreSQL, fake model clients)
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ur_ci_test
