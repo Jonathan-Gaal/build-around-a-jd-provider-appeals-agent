@@ -6,7 +6,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
 import { clinicalDocumentationAgent, computeDateCoverage, type ClinicalDocumentationInput } from "../agents/clinical-documentation";
-import { runAgent as rawRunAgent, ERROR_MESSAGES, type RunAgentOptions, type AgentRunRecord, type ClaudeClient } from "./run-agent";
+import { readStructuredOutput, runAgent as rawRunAgent, ERROR_MESSAGES, type RunAgentOptions, type AgentRunRecord, type ClaudeClient } from "./run-agent";
 
 import { parseEnv } from "../env";
 import { createFakeLedger } from "./spend-fake";
@@ -214,5 +214,16 @@ describe("harness safety and spend", () => {
       expect(await runAgent(clinicalDocumentationAgent,input,{env:parseEnv({APP_DEPLOYMENT:"local",AGENT_REPLAY_DIR:dir}),replay:"read",spend:undefined})).toMatchObject({status:"ok",costUsd:0});
       expect(await runAgent(clinicalDocumentationAgent,{...input,caseId:"missing"},{env:parseEnv({APP_DEPLOYMENT:"local",AGENT_REPLAY_DIR:dir}),replay:"read"})).toMatchObject({status:"failed",errorKind:"no_replay"});
     } finally {await rm(dir,{recursive:true,force:true});}
+  });
+});
+
+describe("readStructuredOutput", () => {
+  it("reads the text block and skips thinking", () => {
+    expect(readStructuredOutput([{ type: "thinking" }, { type: "text", text: '{"a":1}' }])).toEqual({ a: 1 });
+  });
+  it("returns null for cut-off JSON or no text so stop_reason and usage survive", () => {
+    expect(readStructuredOutput([{ type: "text", text: '{"a":' }])).toBeNull();
+    expect(readStructuredOutput([{ type: "thinking" }])).toBeNull();
+    expect(readStructuredOutput([])).toBeNull();
   });
 });

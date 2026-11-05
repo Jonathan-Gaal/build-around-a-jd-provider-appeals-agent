@@ -4,6 +4,8 @@ export const LIMITS = {
   CASE_MAX_DOCUMENTS: 25,
   CALL_TIMEOUT_MS: 60_000,
   CALL_MAX_ATTEMPTS: 2,
+  // Thinking counts toward max_tokens; live runs used over 6,000 tokens per agent.
+  AGENT_MAX_OUTPUT_TOKENS: 16_000,
   CALL_MAX_INPUT_TOKENS_ESTIMATE: 40_000,
   CHARS_PER_TOKEN_ESTIMATE: 3,
   CACHE_WRITE_MULTIPLIER: 1.25,

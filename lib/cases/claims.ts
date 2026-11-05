@@ -8,7 +8,7 @@ import {LIMITS} from "../config/limits";
 import {HttpError} from "../http/errors";
 import {writeAudit} from "../audit/write";
 import {scanText} from "../orchestrator/accept/boundary";
-import {refreshPacketHash} from "../validation/snapshot";
+import {refreshPacketHash,remapReportClaims} from "../validation/snapshot";
 import {transition} from "./transition";
 import {recheckApproval} from "./approval";
 export const editSchema=z.union([z.object({text:z.string().trim().min(1).max(LIMITS.CLAIM_TEXT_MAX_CHARS)}).strict(),z.object({status:z.literal("rejected")}).strict()]);
@@ -30,7 +30,7 @@ export async function editClaim(context:RouteContext,claimId:string,flag=false){
   const oldClaims=await db.select().from(s.claims).where(eq(s.claims.packetVersionId,latest.id));
   const ids=new Map(oldClaims.map(row=>[row.id,randomUUID()]));
   const content=contentSchema.parse(latest.content);
-  await db.insert(s.packetVersions).values({...latest,id:packetId,version:latest.version+1,content:{sections:content.sections.map(section=>({...section,claimIds:section.claimIds.map(id=>ids.get(id)!)}))},includedClaimIds:latest.includedClaimIds.map(id=>ids.get(id)!),createdAt:new Date()});
+  await db.insert(s.packetVersions).values({...latest,id:packetId,version:latest.version+1,content:{sections:content.sections.map(section=>({...section,claimIds:section.claimIds.map(id=>ids.get(id)!)}))},includedClaimIds:latest.includedClaimIds.map(id=>ids.get(id)!),validationReport:remapReportClaims(latest.validationReport,ids),createdAt:new Date()});
   await db.insert(s.claims).values(oldClaims.map(row=>({...row,id:ids.get(row.id)!,packetVersionId:packetId,createdAt:new Date()})));
   const links=oldClaims.length?await db.select().from(s.claimEvidence).where(inArray(s.claimEvidence.claimId,oldClaims.map(row=>row.id))):[];
   if(links.length)await db.insert(s.claimEvidence).values(links.map(link=>({...link,claimId:ids.get(link.claimId)!,createdAt:new Date()})));

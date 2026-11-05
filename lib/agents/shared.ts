@@ -11,7 +11,7 @@ Rules that always apply:
 2. Only state a fact you can support with an exact quote copied character for character from a document. Include the document id. If you cannot quote it, do not state it; report it as a gap instead.
 3. Never decide or state whether care is medically necessary, and never recommend treatment. You organize evidence; clinicians decide.
 4. Never invent dates, names, scores or numbers. Copy them exactly as written.
-5. Keep quotes short: the smallest span that proves the point, usually under 30 words.
+5. Keep quotes short: the smallest span that proves the point, usually under 30 words. A quote must be one unbroken span of the document. Never join separated sentences; use separate quotes instead.
 6. Answer only in the required JSON format.`;
 
 /** One quote. `text` must appear verbatim in the document; the harness checks this in code. */

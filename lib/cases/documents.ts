@@ -1,5 +1,4 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { RouteContext } from "../http/with-route";
@@ -7,7 +6,7 @@ import * as s from "../db/schema";
 import { getEnv, isHosted } from "../env";
 import { LIMITS } from "../config/limits";
 import { HttpError } from "../http/errors";
-import { contentHash } from "../fixtures/ids";
+import { contentHash, fixtureId } from "../fixtures/ids";
 import { takeRate } from "../http/rate-limit";
 import { writeAudit } from "../audit/write";
 import { recheckApproval } from "./approval";
@@ -24,7 +23,9 @@ export async function uploadDocument({db,user,caseId,body}:RouteContext){
  if(!allowlisted&&(isHosted(env)||!env.FREEFORM_UPLOAD_ENABLED))throw new HttpError(422,"not_allowlisted");
  const [count]=await db.select({count:sql<number>`count(*)::int`,chars:sql<number>`coalesce(sum(length(${s.documents.content})),0)::int`}).from(s.documents).where(eq(s.documents.caseId,caseId!));
  if(count.count>=LIMITS.CASE_MAX_DOCUMENTS||count.chars+input.content.length>LIMITS.CASE_MAX_CHARS)throw new HttpError(413,"case_document_limit");
- const [document]=await db.insert(s.documents).values({id:randomUUID(),caseId,type:input.type,title:allowlisted?allow.title:input.title,author:allowlisted?allow.author:input.author??null,serviceDate:allowlisted?allow.serviceDate:input.serviceDate??null,content:input.content,contentHash:hash,version:1,verificationState:"unverified",origin:allowlisted?"allowlisted_upload":"local_freeform",uploadedBy:user.userId}).returning();
+ // Same bytes, same ID, so replay prompts match on a fresh database. The case lock serializes this count.
+ const [same]=await db.select({count:sql<number>`count(*)::int`}).from(s.documents).where(and(eq(s.documents.caseId,caseId!),eq(s.documents.contentHash,hash)));
+ const [document]=await db.insert(s.documents).values({id:fixtureId(caseId!,`upload:${hash}:${same.count}`),caseId,type:input.type,title:allowlisted?allow.title:input.title,author:allowlisted?allow.author:input.author??null,serviceDate:allowlisted?allow.serviceDate:input.serviceDate??null,content:input.content,contentHash:hash,version:1,verificationState:"unverified",origin:allowlisted?"allowlisted_upload":"local_freeform",uploadedBy:user.userId}).returning();
  await writeAudit(db,{actor:user.userId,caseId:caseId!,action:"document_uploaded",objectType:"document",objectId:document.id});
  await recheckApproval(db,caseId!,user.userId);
  return document;
