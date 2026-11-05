@@ -14,4 +14,9 @@ The backend, authentication, agents, API, migrations and clinical approval logic
 
 ## Coordinator
 
+
 `/roles/coordinator`: request demo note → inspect original synthetic note → attach it to preview inventory → mark source collection ready → open the existing clinician workspace. The handoff button stays disabled until the source is present. Source metadata and its fingerprint are preserved; the static preview text is checked against the existing fixture. Clinical date issues and clinician verification remain distinct from source collection. Local action history records request, attachment and handoff.
+
+## Manager
+
+Manager preview: `/roles/manager` shows the synthetic team queue, deadline, current handoff stage, reassignment controls and escalation routing. Assignment and routing events are shared with the other preview screens through browser storage. Neither action clears source gaps, date issues or clinical approval requirements.
