@@ -9,7 +9,7 @@ import type { CaseData } from "./case-workspace";
 import { formatDate, statusLabel } from "./case-workspace";
 
 type Props = { data: CaseData; night: boolean; base: string; caseId: string; onChange: () => Promise<void> };
-const card = (night: boolean) => `rounded-2xl border p-6 ${night ? "border-[#304b3b] bg-[#1b2e26]" : "border-[#dce5de] bg-white"}`;
+const card = (night: boolean) => `min-w-0 rounded-2xl border p-4 sm:p-6 ${night ? "border-[#304b3b] bg-[#1b2e26]" : "border-[#dce5de] bg-white"}`;
 const muted = (night: boolean) => night ? "text-[#a9bbad]" : "text-[#687c6d]";
 const primary = "inline-flex items-center justify-center rounded-lg bg-[#255e4b] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1f513f]";
 const secondary = (night: boolean) => `inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold ${night ? "bg-[#294b38] text-[#d6e9d9]" : "bg-[#e5f0e7] text-[#2c5e43]"}`;
@@ -34,7 +34,7 @@ function ActionFeedback({ error, message }: { error: string | null; message: str
 }
 
 function PageHeading({ eyebrow, title, description, night }: { eyebrow: string; title: string; description: string; night: boolean }) {
-  return <div className="mb-8"><p className={`text-xs font-bold uppercase tracking-widest ${night ? "text-[#8dbf9b]" : "text-[#568267]"}`}>{eyebrow}</p><h1 className="mt-3 font-serif text-4xl">{title}</h1><p className={`mt-2 text-sm ${muted(night)}`}>{description}</p></div>;
+  return <div className="mb-8"><p className={`text-xs font-bold uppercase tracking-widest ${night ? "text-[#8dbf9b]" : "text-[#568267]"}`}>{eyebrow}</p><h1 className="mt-3 font-serif text-3xl sm:text-4xl">{title}</h1><p className={`mt-2 text-sm ${muted(night)}`}>{description}</p></div>;
 }
 
 function ClaimBadge({ claim, night }: { claim: Claim; night: boolean }) {
@@ -86,7 +86,7 @@ export function EvidencePanel({ data, night, base, onChange }: Props) {
   const validSpan = selectionSpan && document && document.content.slice(selectionSpan.startOffset, selectionSpan.endOffset) === selectionSpan.excerpt;
   return <>
     <PageHeading eyebrow="Evidence provenance" title="Evidence review" description="Select a claim to compare its wording with the original source passage." night={night} />
-    <div className="grid gap-5 xl:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.15fr)]">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
       <section className={card(night)} aria-labelledby="claim-list"><h2 id="claim-list" className="text-lg font-semibold">Claim to source map</h2>{data.issues.some(issue => issue.type === "missing_document" && issue.status === "open") && <div className="mt-5 rounded-lg bg-[#ba8735]/10 p-4 text-sm"><strong className="text-[#ad7b36]">Missing source · Unsupported</strong><p className="mt-2">The November 2 note is absent. No statement can be supported by that source.</p><Link href={`${base}/attachment`} className="mt-3 inline-block underline underline-offset-4">Attach original note →</Link></div>}
         {data.claims.length ? <div className="mt-5 space-y-3">{data.claims.map(claim => <button key={claim.id} type="button" onClick={() => { setSelectedId(claim.id); setDocumentId(null); setSpanIndex(0); setFlagReason(""); }} aria-pressed={selected?.id === claim.id} className={`w-full rounded-xl border p-4 text-left transition-colors ${selected?.id === claim.id ? night ? "border-[#7aa98a] bg-[#284337]" : "border-[#6d9d7b] bg-[#f0f7f0]" : night ? "border-[#365243] hover:bg-[#233a2e]" : "border-[#e1e9e2] hover:bg-[#f8faf8]"}`}><ClaimBadge claim={claim} night={night} /><p className="mt-3 text-sm leading-6">{claim.text}</p><p className={`mt-2 text-xs ${muted(night)}`}>{claim.evidence.length ? `${claim.evidence.length} source passage${claim.evidence.length === 1 ? "" : "s"}` : "No verified source passage"}</p></button>)}</div> : <p className={`mt-5 text-sm ${muted(night)}`}>No packet claims are available yet. Start a review run from Recheck.</p>}
         <Link href={`${base}/issues`} className={`${secondary(night)} mt-5`}>Review blockers →</Link>
@@ -162,7 +162,7 @@ function MissingNoteResolution({ data, night, caseId, onChange, issueId }: Props
 
   return <div className="mt-6 border-t border-current/10 pt-5">
     <h3 className="font-semibold">Attach original synthetic note</h3>
-    {existing ? <p className={`mt-2 text-sm ${muted(night)}`}>Nov 2 note already attached · {existing.verificationState}. Resolve it with this source.</p> : <><p className={`mt-2 text-sm ${muted(night)}`}>Select <code>fixtures/ur-1042/late-arrival/note-2026-11-02.md</code> from this project. Only that allowlisted synthetic content can be submitted.</p><input aria-label="Select synthetic November 2 note" type="file" accept=".md,text/markdown,text/plain" onChange={event => { void selectFile(event.target.files?.[0]); }} className="mt-4 block w-full text-sm" />{fileName && <p className={`mt-2 text-xs ${muted(night)}`}>Selected: {fileName}</p>}{content && <details className="mt-4"><summary className="cursor-pointer text-sm font-semibold">Preview original note</summary><pre className={`mt-3 max-h-60 overflow-auto whitespace-pre-wrap rounded-lg p-3 text-xs ${night ? "bg-[#13251d]" : "bg-[#f4f7f3]"}`}>{content}</pre></details>}</>}
+    {existing ? <p className={`mt-2 text-sm ${muted(night)}`}>Nov 2 note already attached · {existing.verificationState}. Resolve it with this source.</p> : <><p className={`mt-2 text-sm ${muted(night)}`}>Select <code>fixtures/ur-1042/late-arrival/note-2026-11-02.md</code> from this project. Only that allowlisted synthetic content can be submitted.</p><input aria-label="Select synthetic November 2 note" type="file" accept=".md,text/markdown,text/plain" onChange={event => { void selectFile(event.target.files?.[0]); }} className="mt-4 block min-w-0 w-full max-w-full text-sm" />{fileName && <p className={`mt-2 text-xs ${muted(night)}`}>Selected: {fileName}</p>}{content && <details className="mt-4"><summary className="cursor-pointer text-sm font-semibold">Preview original note</summary><pre className={`mt-3 max-h-60 overflow-auto whitespace-pre-wrap rounded-lg p-3 text-xs ${night ? "bg-[#13251d]" : "bg-[#f4f7f3]"}`}>{content}</pre></details>}</>}
     {fileError && <p role="alert" className="mt-3 text-sm text-[#bc6552]">{fileError}</p>}
     <label className="mt-4 block text-sm">Resolution reason<input value={reason} onChange={event => setReason(event.target.value)} maxLength={2000} className={`mt-2 w-full rounded-lg border px-3 py-2 outline-none focus:border-[#649b72] ${night ? "border-[#45614c] bg-[#15271e]" : "border-[#d1dfd3] bg-white"}`} /></label>
     <button type="button" disabled={action.busy || !reason.trim() || (!existing && !content)} onClick={() => { void attachAndResolve(); }} className={`${primary} mt-4 disabled:cursor-not-allowed disabled:opacity-50`}>{action.busy ? "Saving…" : "Attach, verify and resolve"}</button>

@@ -39,3 +39,9 @@ Prototype-only shortcuts such as “show failed-run example” or “show change
 Browser walkthrough: demo login, queue search and empty result, Requests to the correct issue, original authorization/request source viewers, required date reason, missing-note attachment screen, blocked sign-off, profile, notification controls, avatar menu, and shared night theme across navigation.
 
 Automated checks: TypeScript, ESLint, production build, and 296 tests including 10 frontend approval-gate cases. A successful agent run and complete sign-off journey remain untested locally because replay recordings are absent.
+
+## Resizing
+
+Below 1024px, navigation collapses into a Menu button instead of occupying most of the page. The menu exposes workspace, account and case links, closes after navigation, and returns keyboard focus to its trigger when dismissed with Escape. The header wraps independently of page content. Cards, profile context and case rows stack; source panels and long identifiers stay within their available width.
+
+Browser checks covered 320px (Evidence, blocked Sign-off, Profile), 375px (loaded queue and compact-menu navigation), and 768px, 1024px and 1280px (queue and date verification). Document width did not exceed viewport width in these checks. Temporary viewport overrides were reset afterward.
