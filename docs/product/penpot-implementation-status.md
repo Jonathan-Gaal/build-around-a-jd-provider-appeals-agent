@@ -20,7 +20,8 @@ The earlier implementation delivered the five main case tabs but did not reprodu
 | Recheck / incomplete run | Existing run API and individual agent states | No generated result is fabricated when replay data is absent |
 | Blocked / ready / signed-off / invalidated | Validation and exact version/hash controls | GET case response has no approval actor/time record; do not invent those fields |
 | New-review intake | Not implemented | PRD v3 MVP uses the existing single case; there is no create-case route |
-| Denial and other roles | Not implemented | Marked future in PRD v3 and Penpot |
+| Other roles | Coordinator, manager and submission frontend previews at `/roles` | Separate synthetic browser state; no backend roles or real handoffs. See role-preview-flows.md |
+| Denial | Not implemented | Marked future in PRD v3 and Penpot |
 
 Prototype-only shortcuts such as “show failed-run example” or “show changed-packet state” must not mutate or falsify the real review state. Run failures and packet changes must come from existing persisted state.
 

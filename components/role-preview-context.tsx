@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { applyPreviewAction, initialRolePreview, previewStateSchema, type PreviewAction, type RolePreviewState } from "@/lib/client/role-preview";
 
 const storageKey = "wellline-role-preview-v1";
-const RoleContext = createContext<{ state: RolePreviewState; ready: boolean; storageError: boolean; act: (action: PreviewAction) => void } | null>(null);
+const RoleContext = createContext<{ state: RolePreviewState; ready: boolean; storageError: boolean; act: (action: PreviewAction) => void; reset: () => void } | null>(null);
 export function RolePreviewProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState(initialRolePreview);
   const [ready, setReady] = useState(false);
@@ -19,7 +19,8 @@ export function RolePreviewProvider({ children }: { children: ReactNode }) {
     const at = new Date().toISOString(), id = crypto.randomUUID();
     setState(current => applyPreviewAction(current, action, at, id));
   }
-  return <RoleContext.Provider value={{ state, ready, storageError, act }}>{children}</RoleContext.Provider>;
+  function reset() { setState(initialRolePreview); }
+  return <RoleContext.Provider value={{ state, ready, storageError, act, reset }}>{children}</RoleContext.Provider>;
 }
 export function useRolePreview() {
   const context = useContext(RoleContext);
