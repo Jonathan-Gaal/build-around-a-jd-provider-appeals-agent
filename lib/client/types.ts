@@ -29,15 +29,16 @@ export type DocumentSummary = {
 export type DocumentDetail = DocumentSummary & { content: string; origin: string; contentHash: string };
 export type EvidenceSpan = { id: string; documentId: string; startOffset: number; endOffset: number; excerpt: string; method: string };
 export type Claim = {
-  id: string; text: string; sectionHeading: string; position: number; status: string; displayStatus: string;
+  id: string; packetVersionId: string; text: string; sectionHeading: string; position: number; status: string; displayStatus: string;
   sourceKind: string; material: boolean; boundaryFlagged: boolean; evidence: EvidenceSpan[];
 };
 export type Issue = {
-  id: string; type: "missing_document" | "date_conflict"; severity: string; blocking: boolean;
-  status: "open" | "resolved"; description: string; requiredDocumentType: string | null;
+  id: string; type: "missing_document" | "date_conflict" | "unsupported_claim" | "stale_policy" | "extraction_uncertain" | "insurer_objection" | "other"; severity: string; blocking: boolean;
+  status: "open" | "awaiting_document" | "in_rework" | "escalated" | "resolved"; description: string; requiredDocumentType: string | null;
   requiredServiceDate: string | null; resolution: string | null; resolutionReason: string | null;
   resolutionEvidenceId: string | null; allowedResolutions: string[];
 };
+export type ClinicianIdentity = { id: string; name: string | null; role: string };
 export type Blocker = { code: string; message: string; objectType?: string; objectId?: string };
 export type Validation = {
   packetVersionId: string | null; contentHash: string | null;

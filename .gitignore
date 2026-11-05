@@ -15,3 +15,6 @@ npm-debug.log*
 !.env.example
 
 .agent-replay/
+
+# Isolated browser-test reports and Next output
+.e2e-results/

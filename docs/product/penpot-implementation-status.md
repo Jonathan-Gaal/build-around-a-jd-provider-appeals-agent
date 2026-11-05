@@ -18,7 +18,7 @@ The earlier implementation delivered the five main case tabs but did not reprodu
 | Summary / Evidence | Existing API claims and exact source passages | Seed does not include a prepared packet; agent replay fixtures or an enabled model are required |
 | Issues / attached note / dates | Existing upload, verification and issue routes | Synthetic allowlist remains enforced by the backend |
 | Recheck / incomplete run | Existing run API and individual agent states | No generated result is fabricated when replay data is absent |
-| Blocked / ready / signed-off / invalidated | Validation and exact version/hash controls | GET case response has no approval actor/time record; do not invent those fields |
+| Blocked / ready / signed-off / invalidated | Exact version/hash controls; actual POST approval receipt, previous-receipt invalidation display | Receipt is captured in this browser; GET case still has no historical actor/time API |
 | New-review intake | Not implemented | PRD v3 MVP uses the existing single case; there is no create-case route |
 | Other roles | Coordinator, manager and submission frontend previews at `/roles` | Separate synthetic browser state; no backend roles or real handoffs. See role-preview-flows.md |
 | Denial | Not implemented | Marked future in PRD v3 and Penpot |
@@ -33,13 +33,13 @@ Prototype-only shortcuts such as “show failed-run example” or “show change
 - Recheck displays incomplete runs, retry actions and attempt counts while preserving the completed results.
 - Sign-off displays the validation checks, a visibly disabled action while blocked, the exact current packet preview, and signed-off version/hash with return to queue. An acknowledgement resets whenever the packet ID or hash changes.
 - The frontend additionally requires a completed run and matching packet ID/hash. The existing server remains authoritative.
-- The full historical sign-off/invalidation record is still an API gap. Current case status, blockers and packet hash are displayed; no historical clinician name, timestamp, old hash or invalidation event is invented.
+- The approval response now supplies the real clinician, timestamp, version and hash receipt. Its browser copy is scoped to the actual signed-in user and case, never used as approval authority, and shown as previous after the packet changes. Full history retrieval in another browser is still an API gap.
 
 ## Verification
 
 Browser walkthrough: demo login, queue search and empty result, Requests to the correct issue, original authorization/request source viewers, required date reason, missing-note attachment screen, blocked sign-off, profile, notification controls, avatar menu, and shared night theme across navigation.
 
-Automated checks: TypeScript, ESLint, production build, and 296 tests including 10 frontend approval-gate cases. A successful agent run and complete sign-off journey remain untested locally because replay recordings are absent.
+The clinician completion branch adds a full browser acceptance run using the unchanged backend, real Auth.js/PostgreSQL and the existing deterministic client seam. Exact-quote review, note upload, date verification, recheck, actual approval, reload, edit/invalidation, incomplete-agent blocking, citation flags and rejection were exercised. The 326-test suite and a separate persisted-evidence verifier pass. This proves the frontend journey with test clients; actual replay recordings and live model quality remain separate requirements. See `e2e/UR-1042-clinician-flow.md` for steps, evidence and limits.
 
 ## Resizing
 
