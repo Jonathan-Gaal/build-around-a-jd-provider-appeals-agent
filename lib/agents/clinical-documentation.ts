@@ -62,7 +62,7 @@ export const Fact = z.object({
   category: z.enum(FACT_CATEGORIES),
   statement: z
     .string()
-    .describe("One neutral sentence stating what the record says. No judgment about necessity."),
+    .describe("One neutral sentence stating one finding from the record. Never combine unrelated findings, such as a diagnosis and vital signs. No judgment about necessity."),
   serviceDate: z
     .string()
     .nullable()
@@ -122,6 +122,7 @@ What counts as a fact, by category:
 
 How to work:
 - Prefer the most recent documentation. If documents disagree, extract both facts and add a gap describing the conflict.
+- One finding per fact: never combine unrelated findings (a diagnosis with vital signs, or a symptom with a medication) in one statement or one fact; use separate facts.
 - Keep each statement neutral and specific ("Patient reported passive suicidal ideation without plan on 2026-11-03"), not evaluative ("Patient is high risk").
 - The user message includes a date coverage table computed by code. Treat it as correct. For each day with hasNote=false, add a gap with severity "high".
 - Also add gaps for: missing risk assessment in the latest note, no documented discharge plan, missing or unsigned treatment plan, vague notes that do not describe current status.
@@ -147,7 +148,7 @@ function buildPrompt(input: ClinicalDocumentationInput): string {
 // ---------------------------------------------------------------------------
 export const clinicalDocumentationAgent: AgentDef<ClinicalDocumentationInput, ClinicalDocumentationOutput> = {
   name: "clinical-documentation",
-  version: "1.4.0",
+  version: "1.5.0",
   system: SYSTEM,
   output: ClinicalDocumentationOutput,
   buildPrompt,
