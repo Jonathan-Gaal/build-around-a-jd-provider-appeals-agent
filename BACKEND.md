@@ -23,7 +23,7 @@ Neon project `ur-appeals`, Free plan, AWS US East, provisioned through the Verce
 
 ## Model execution
 
-**Period claims.** Code writes the requested and authorized period claims from stored values (`author: "code"`, type `administrative_fact`, section "Review periods"). They have no evidence rows, so show their source from the case's review period and authorization. A model claim citing a period ID is `unsupported` and blocks until a clinician edits or rejects it. The drafting prompt still asks for those claims, so expect two per run until it changes.
+**Period claims.** Code writes the requested and authorized period claims from stored values (`author: "code"`, type `administrative_fact`, section "Review periods"). They have no evidence rows, so show their source from the case's review period and authorization. A model claim citing a period ID is `unsupported` and blocks until a clinician edits or rejects it. The drafting prompt tells the model not to write those claims; if it does anyway, they block as above.
 
 `runAgent()` is the only model caller. Live calls require `ANTHROPIC_API_KEY`, a reachable shared `SPEND_LEDGER_URL`, and available budget. Preview live calls are refused. Every attempt reserves budget atomically; ordinary spending stops at $26, with the separately unlocked demo stop at $36.
 
