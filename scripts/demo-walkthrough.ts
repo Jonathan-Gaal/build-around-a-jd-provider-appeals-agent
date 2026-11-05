@@ -74,7 +74,7 @@ async function reviewRun() {
 
 async function blockers(label: string) {
   const validation = await api("GET", `cases/${CASE}/validation`);
-  console.log(`  ${label}: ${validation.blockers.length === 0 ? "no blockers" : validation.blockers.map((b: {code: string}) => b.code).join(", ")}`);
+  console.log(`  ${label}: ${validation.blockers.length === 0 ? "no blockers" : validation.blockers.map((b: {code: string; objectId?: string}) => (b.code === "validation_failed" ? `${b.code}:${b.objectId}` : b.code)).join(", ")}`);
   return validation;
 }
 
