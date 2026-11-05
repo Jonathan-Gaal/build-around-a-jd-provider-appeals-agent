@@ -112,7 +112,7 @@ async function testFailedQuoteClears(approvalBody:{acknowledgement:string}){
   let output:unknown;
   if(system.includes("Clinical Documentation agent"))output={facts:[{id:"f1",category:"symptoms",statement:quote,serviceDate:note.serviceDate,quotes:[{documentId:note.id,text:quote}]},{id:"f2",category:"symptoms",statement:"Synthetic unsupported fact",serviceDate:note.serviceDate,quotes:[{documentId:note.id,text:"An invented statement absent from this record."}]}],gaps:[]};
   else if(system.includes("Case Assembly and Drafting agent"))output={mode:"review_packet",sections:[{heading:"Current documentation",claims:[{text:quote,sourceKind:"extracted_fact",factIds:["f1"]},{text:"Synthetic unsupported claim",sourceKind:"extracted_fact",factIds:["f2"]}]}],openQuestions:[]};
-  else output={checks:[{name:"model_no_claims",result:"fail",detail:"Finding with no claim",affected:[]},{name:"model_named_claim",result:"fail",detail:"Finding on claim 2",affected:["claim-2","claim-unknown"]}],issues:[{type:"missing_document",severity:"major",blocking:true,description:"Synthetic: no discharge plan",sendBackTo:null}]};
+  else output={checks:[{name:"model_no_claims",result:"fail",detail:"Finding with no claim",affected:[]},{name:"model_named_claim",result:"fail",detail:"Finding on claim 2",affected:["claim-2","claim-unknown"]}],issues:[{type:"missing_document",severity:"major",blocking:true,description:"Synthetic: no discharge plan",requiredDocumentType:null,serviceDate:null,sendBackTo:null}]};
   return {parsed_output:output,usage:{input_tokens:100,output_tokens:50},stop_reason:"end_turn"};
  }}};
  const run=await okay("POST","cases/UR-1042/runs",{});scheduled.length=0;
