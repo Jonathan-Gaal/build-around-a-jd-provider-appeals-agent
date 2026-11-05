@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { WorkspaceShell, useWorkspaceTheme, panelClass, mutedClass } from "./workspace-shell";
 import { useRolePreview } from "./role-preview-context";
 
-export const rolePreviewLinks = [{ href: "/roles", label: "Role map" }];
+export const rolePreviewLinks = [{ href: "/roles", label: "Role map" }, { href: "/roles/coordinator", label: "Coordinator" }];
 export function RolePreviewShell({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   const { night } = useWorkspaceTheme();
   const { ready, storageError } = useRolePreview();
