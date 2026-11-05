@@ -16,7 +16,7 @@ import {clinicalDocumentationAgent,computeDateCoverage,type Fact} from "../agent
 import {caseAssemblyAgent,type CaseAssemblyInput} from "../agents/case-assembly";
 import {PERIOD_FACT_IDS} from "../validation/period-facts";
 import {independentQualityAgent} from "../agents/independent-quality";
-import {acceptDraftClaims,findDuplicateIds,mergeChecks,reportChecks,acceptQualityIssues} from "./accept/accept";
+import {acceptDraftClaims,buildPeriodClaims,PERIOD_SECTION_HEADING,findDuplicateIds,mergeChecks,reportChecks,acceptQualityIssues} from "./accept/accept";
 import {scanAgentOutput} from "./accept/boundary";
 import {verifyQuotes} from "../harness/verify-quotes";
 import {getSpendLedger,checkSpendAdmission} from "../db/spend-ledger";
@@ -105,8 +105,6 @@ export async function executeGroup(db:Database,groupId:string,options:ExecutionO
    throw new Error("duplicate_fact_ids");
   }
   const verifiedFacts=new Set(clinical.output.facts.filter(fact=>!duplicateIds.includes(fact.id)&&fact.quotes.length>0&&verifyQuotes(fact.quotes,documents).every(q=>q.status==="verified")).map(fact=>fact.id));
-  // Period facts come from code's reading of the source documents, not from a model quote.
-  verifiedFacts.add(PERIOD_FACT_IDS.requested);verifiedFacts.add(PERIOD_FACT_IDS.authorized);
   const verifiedQuotes=clinical.output.facts.filter(fact=>verifiedFacts.has(fact.id)).flatMap(fact=>fact.quotes.map(q=>q.text));
   const checks:CaseAssemblyInput["checks"]=[{name:"fact_ids",result:duplicateIds.length?"fail":"pass",detail:"Fact IDs must be unique.",affected:[]},{name:"quote_support",result:clinical.status==="needs_review"?"fail":"pass",detail:"Every extracted fact quote must verify.",affected:[]}];
   if(scanAgentOutput(clinical.output,verifiedQuotes).flagged)checks.push({name:"clinical_boundary",result:"fail",detail:"Clinical boundary language found.",affected:[]});
@@ -120,6 +118,8 @@ export async function executeGroup(db:Database,groupId:string,options:ExecutionO
   const claimIdByAlias=new Map(accepted.map((claim,position)=>[`claim-${position+1}`,claim.id]));
   let index=0;
   const qualityDraft={...draft.output,sections:draft.output.sections.map(section=>({...section,claims:section.claims.map(claim=>({...claim,id:`claim-${++index}`}))}))};
+  // Added after the aliases: the quality agent reviews the model's draft, so its prompt and recordings stay the same.
+  const periodClaims=buildPeriodClaims({requested:{start:period.requestedStart,end:period.requestedEnd},authorized:{start:auth.approvedStart,end:auth.approvedEnd}},caseId,accepted.length).map(claim=>({...claim,id:randomUUID()}));
   await beginAgent(agents[2]);
   const quality=await runAgent(independentQualityAgent,{...assemblyInput,draft:qualityDraft},opts(agents[2]));
   if(!quality.output)throw new Error(quality.errorKind??"agent_failed");
@@ -145,9 +145,9 @@ export async function executeGroup(db:Database,groupId:string,options:ExecutionO
    await tx.update(s.runGroups).set({status:"complete",finishedAt:new Date(),heartbeatAt:new Date()}).where(eq(s.runGroups.id,groupId));
    const candidate=async(candidateTx:Transaction)=>{
    const packetId=randomUUID();
-   const content={sections:qualityDraft.sections.map(section=>({heading:section.heading,claimIds:section.claims.map(claim=>claimIdByAlias.get(claim.id)!)}))};
-   await candidateTx.insert(s.packetVersions).values({id:packetId,caseId,version:(previous?.version??0)+1,kind:"review_packet",content,includedClaimIds:accepted.map(claim=>claim.id),contentHash:"pending",hashInput:{},validationReport:report,runGroupId:groupId});
-   if(accepted.length)await candidateTx.insert(s.claims).values(accepted.map(claim=>({...claim,packetVersionId:packetId})));
+   const content={sections:[...qualityDraft.sections.map(section=>({heading:section.heading,claimIds:section.claims.map(claim=>claimIdByAlias.get(claim.id)!)})),{heading:PERIOD_SECTION_HEADING,claimIds:periodClaims.map(claim=>claim.id)}]};
+   await candidateTx.insert(s.packetVersions).values({id:packetId,caseId,version:(previous?.version??0)+1,kind:"review_packet",content,includedClaimIds:[...accepted,...periodClaims].map(claim=>claim.id),contentHash:"pending",hashInput:{},validationReport:report,runGroupId:groupId});
+   await candidateTx.insert(s.claims).values([...accepted,...periodClaims].map(claim=>({...claim,packetVersionId:packetId})));
    const facts=new Map<string,Fact>(clinical.output!.facts.map(fact=>[fact.id,fact]));
    for(const claim of accepted){
     for(const factId of claim.factIds){

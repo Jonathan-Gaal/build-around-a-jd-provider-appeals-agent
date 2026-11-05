@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { acceptDraftClaims, acceptQualityIssues, findDuplicateIds, mergeChecks, reportChecks, resolveFactIds, type AcceptContext } from './accept';
+import { acceptDraftClaims, acceptQualityIssues, buildPeriodClaims, findDuplicateIds, mergeChecks, reportChecks, resolveFactIds, type AcceptContext } from './accept';
 
 describe('reportChecks', () => {
   const aliases = new Map([['claim-1', 'id-1'], ['claim-2', 'id-2']]);
@@ -34,6 +34,21 @@ describe('accept output', () => {
     expect(draft({ text: 'Fact', sourceKind: 'direct_quote', factIds: ['f1', 'f9'] }).status).toBe('unsupported');
     expect(draft({ text: 'Synthesis', sourceKind: 'agent_synthesis', factIds: [] })).toMatchObject({ status: 'unsupported', type: 'narrative' });
     expect(draft({ text: 'Fact', sourceKind: 'clinician_text', factIds: ['f1'] })).toMatchObject({ sourceKind: 'agent_synthesis', type: 'narrative' });
+  });
+  it('never verifies a drafted claim that cites a period ID, whatever its text', () => {
+    // The ID can reach the verified set if the extraction agent names its own fact after a period.
+    const collided = { ...ctx, verifiedFactIds: new Set(['f1', 'period-requested', 'period-authorized']) };
+    const accept = (factIds: string[]) => acceptDraftClaims([{ heading: 'Summary', claims: [{ text: 'Patient may be discharged on 2026-11-03.', sourceKind: 'extracted_fact', factIds }] }], collided)[0];
+    expect(accept(['period-authorized'])).toMatchObject({ status: 'unsupported', type: 'clinical_fact' });
+    expect(accept(['period-requested'])).toMatchObject({ status: 'unsupported', type: 'clinical_fact' });
+    expect(accept(['f1', 'period-authorized']).status).toBe('unsupported');
+    expect(accept(['f1']).status).toBe('source_verified');
+  });
+  it('writes each period claim from the stored values, keeping the two periods separate', () => {
+    expect(buildPeriodClaims({ requested: { start: '2026-11-04', end: '2026-11-06' }, authorized: { start: '2026-11-01', end: '2026-11-03' } }, 'UR-1042', 21)).toEqual([
+      { caseId: 'UR-1042', agentRunId: null, author: 'code', sectionHeading: 'Review periods', position: 21, text: 'Requested period: 2026-11-04 through 2026-11-06.', type: 'administrative_fact', sourceKind: 'extracted_fact', status: 'source_verified', material: true, factIds: ['period-requested'], boundaryFlagged: false, originalText: null },
+      { caseId: 'UR-1042', agentRunId: null, author: 'code', sectionHeading: 'Review periods', position: 22, text: 'Authorized period: 2026-11-01 through 2026-11-03.', type: 'administrative_fact', sourceKind: 'extracted_fact', status: 'source_verified', material: true, factIds: ['period-authorized'], boundaryFlagged: false, originalText: null },
+    ]);
   });
   it('scans boundary rather than trusting flags', () => {
     expect(draft({ text: 'Medical necessity is met.', factIds: ['f1'] }).boundaryFlagged).toBe(true);

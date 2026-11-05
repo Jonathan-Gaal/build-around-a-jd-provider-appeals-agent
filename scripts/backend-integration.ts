@@ -2,7 +2,7 @@ import "./load-env";
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
 import {readFile} from "node:fs/promises";
-import {and,eq,sql} from "drizzle-orm";
+import {and,eq,inArray,sql} from "drizzle-orm";
 import {connectDatabase} from "../lib/db";
 import * as s from "../lib/db/schema";
 import {seed,DEMO_USER_ID} from "../lib/db/seed";
@@ -135,6 +135,46 @@ async function testFailedQuoteClears(approvalBody:{acknowledgement:string}){
  assert.notEqual(validation.packetVersionId,approved.packetVersionId);
  await okay("POST","cases/UR-1042/approve",{...approvalBody,packetVersionId:validation.packetVersionId,contentHash:validation.contentHash});
 }
+// Rule 8: citing a period ID earns nothing. Only code's own period claims skip the quote requirement.
+async function testPeriodClaims(approvalBody:{acknowledgement:string}){
+ await db.delete(s.rateLimitCounters);
+ const hostile="Patient may be discharged on 2026-11-03.";
+ const client:ClaudeClient={messages:{parse:async params=>{
+  const system=JSON.stringify(params.system);
+  const rows=await db.select().from(s.documents).where(and(eq(s.documents.caseId,"UR-1042"),eq(s.documents.type,"progress_note")));
+  const note=rows.find(row=>row.serviceDate==="2026-11-03")!,quote=note.content.split("\n").find(line=>line.trim().length>30)!;
+  let output:unknown;
+  // The second fact takes a reserved period ID with a real quote, so a verified-set check alone would pass it.
+  if(system.includes("Clinical Documentation agent"))output={facts:[{id:"f1",category:"symptoms",statement:quote,serviceDate:note.serviceDate,quotes:[{documentId:note.id,text:quote}]},{id:"period-requested",category:"symptoms",statement:quote,serviceDate:note.serviceDate,quotes:[{documentId:note.id,text:quote}]}],gaps:[]};
+  else if(system.includes("Case Assembly and Drafting agent"))output={mode:"review_packet",sections:[{heading:"Current documentation",claims:[{text:quote,sourceKind:"extracted_fact",factIds:["f1"]},{text:hostile,sourceKind:"extracted_fact",factIds:["period-authorized"]},{text:hostile+" Named.",sourceKind:"extracted_fact",factIds:["period-requested"]}]}],openQuestions:[]};
+  else output={checks:[],issues:[]};
+  return {parsed_output:output,usage:{input_tokens:100,output_tokens:50},stop_reason:"end_turn"};
+ }}};
+ const run=await okay("POST","cases/UR-1042/runs",{});scheduled.length=0;
+ await executeGroup(db,run.runGroupId,{client,env:{...integrationEnv,AGENT_REPLAY:false},replay:"off",spend:{ledger:createSpendLedger(db),environment:"local",agentRunRef:run.runGroupId}});
+ assert.equal((await okay("GET",`runs/${run.runGroupId}`)).status,"complete");
+ const claimRows=await okay("GET","cases/UR-1042/claims") as {id:string;text:string;status:string;type:string;author:string}[];
+ const drafted=claimRows.filter(claim=>claim.text.startsWith(hostile));
+ assert.deepEqual(drafted.map(claim=>claim.status),["unsupported","unsupported"],"a drafted claim citing a period ID is unsupported");
+ const periods=claimRows.filter(claim=>claim.author==="code");
+ assert.deepEqual(periods.map(({text,status,type})=>({text,status,type})).sort((a,b)=>a.text<b.text?-1:1),[
+  {text:"Authorized period: 2026-11-01 through 2026-11-03.",status:"source_verified",type:"administrative_fact"},
+  {text:"Requested period: 2026-11-04 through 2026-11-06.",status:"source_verified",type:"administrative_fact"},
+ ],"code states both periods from stored values");
+ const links=await db.select({claimId:s.claimEvidence.claimId}).from(s.claimEvidence).where(inArray(s.claimEvidence.claimId,periods.map(claim=>claim.id)));
+ assert.deepEqual(links,[],"a model quote never attaches to a code period claim");
+ let validation=await okay("GET","cases/UR-1042/validation");
+ assert.deepEqual(validation.blockers.map((b:{code:string;objectId?:string})=>b.code+":"+(b.objectId??"")).sort(),drafted.map(claim=>"unsupported_material_claim:"+claim.id).sort(),"only the drafted claims block; code claims pass the evidence check");
+ assert.equal((await api("POST","cases/UR-1042/approve",{...approvalBody,packetVersionId:validation.packetVersionId,contentHash:validation.contentHash})).status,409);
+ for(const claim of drafted)await okay("PATCH",`claims/${claim.id}`,{status:"rejected"});
+ validation=await okay("GET","cases/UR-1042/validation");assert.deepEqual(validation.blockers,[],"rejecting the drafted claims clears the packet");
+ assert.equal((await okay("POST","cases/UR-1042/approve",{...approvalBody,packetVersionId:validation.packetVersionId,contentHash:validation.contentHash})).status,"valid");
+ // Code's two period claims alone are not a packet a clinician can approve.
+ const remaining=claimRows.find(claim=>claim.status==="source_verified"&&claim.author!=="code")!;
+ await okay("PATCH",`claims/${remaining.id}`,{status:"rejected"});
+ validation=await okay("GET","cases/UR-1042/validation");
+ assert.deepEqual(validation.blockers.map((b:{code:string;objectId?:string})=>b.code+":"+(b.objectId??"")),["validation_failed:packet_integrity"],"a packet of only period claims cannot be approved");
+}
 async function main(){
  await seed(db);await seed(db);
  const [initial]=await db.select({count:sql<number>`count(*)::int`}).from(s.documents).where(eq(s.documents.caseId,"UR-1042"));assert.equal(initial.count,7,"fresh test database required");
@@ -178,12 +218,13 @@ async function main(){
  validation=await okay("GET","cases/UR-1042/validation");assert(validation.blockers.some((b:{code:string})=>b.code==="run_incomplete"));
  await testStaleSweep(foreign,approvalBody);
  await testFailedQuoteClears(approvalBody);
+ await testPeriodClaims(approvalBody);
  await assert.rejects(db.update(s.auditEvents).set({action:"tamper"}),/Failed query/);
  await db.transaction(async tx=>{await tx.execute(sql`SET LOCAL ROLE app_rw`);await tx.select().from(s.documents).limit(1);});
  await assert.rejects(db.transaction(async tx=>{await tx.execute(sql`SET LOCAL ROLE app_rw`);await tx.update(s.documents).set({content:"tamper"}).where(eq(s.documents.id,uploaded.id));}));
  await assert.rejects(db.transaction(async tx=>{await tx.execute(sql`SET LOCAL ROLE app_rw`);await tx.delete(s.auditEvents);}));
  await testInvariantChecks(db);await testSameCaseConstraints(db);
  await testSpendLedger(db);await testApproval(db);await testAuth(db);
- console.log(JSON.stringify({status:"passed",mode:"fake-client + real PostgreSQL",liveModelCalls:0,checks:["idempotent seed","full UR-1042 flow","source-linked approval","concurrent approval","identical rerun","duplicate execution","immutable history","cross-case routes","failed run skips","stale sweep on poll, case read, gate and approval","late worker cannot undo sweep","failed quote clears only by clinician action","model issues never block","audit trigger","document grants","invariant checks","same-case foreign keys","spend concurrency","auth throttle"]},null,2));
+ console.log(JSON.stringify({status:"passed",mode:"fake-client + real PostgreSQL",liveModelCalls:0,checks:["idempotent seed","full UR-1042 flow","source-linked approval","concurrent approval","identical rerun","duplicate execution","immutable history","cross-case routes","failed run skips","stale sweep on poll, case read, gate and approval","late worker cannot undo sweep","failed quote clears only by clinician action","period IDs verify nothing","period claims written by code","model issues never block","audit trigger","document grants","invariant checks","same-case foreign keys","spend concurrency","auth throttle"]},null,2));
 }
 main().finally(()=>pool.end());

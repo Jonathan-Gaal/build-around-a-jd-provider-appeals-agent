@@ -1,14 +1,16 @@
 import { createHash } from 'node:crypto';
 import { ISSUE_TYPES, ISSUE_SEVERITIES, type IssueType, type IssueSeverity, type CheckResult } from '../../db/enums';
+import { CODE_CLAIM_AUTHOR, PERIOD_FACT_IDS, isPeriodFactId } from '../../validation/period-facts';
 import { scanText } from './boundary';
 
 export type AcceptContext = { caseId: string; agentName: string; agentRunId: string; verifiedFactIds: ReadonlySet<string>; verifiedQuotes: readonly string[]; runAgentNames: ReadonlySet<string> };
-export type ClaimDraft = { caseId: string; agentRunId: string; author: string; sectionHeading: string; position: number; text: string; type: 'clinical_fact' | 'narrative'; sourceKind: 'direct_quote' | 'extracted_fact' | 'agent_synthesis'; status: 'source_verified' | 'unsupported'; material: true; factIds: string[]; boundaryFlagged: boolean; originalText: null };
+export type ClaimDraft = { caseId: string; agentRunId: string | null; author: string; sectionHeading: string; position: number; text: string; type: 'clinical_fact' | 'narrative' | 'administrative_fact'; sourceKind: 'direct_quote' | 'extracted_fact' | 'agent_synthesis'; status: 'source_verified' | 'unsupported'; material: true; factIds: string[]; boundaryFlagged: boolean; originalText: null };
 export type IssueDraft = { caseId: string; type: IssueType; severity: IssueSeverity; blocking: boolean; status: 'open'; source: string; sourceRunId: string; description: string; ownerId: null; dedupeKey: string; sendBackTo: string | null; requiredDocumentType: 'progress_note' | null; requiredServiceDate: string | null };
 
 // Model-named notes are keyed like the code's own progress-note issues, so a rerun cannot open a second copy.
 const KEYED_DOCUMENT_TYPE = 'progress_note';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+export const PERIOD_SECTION_HEADING = 'Review periods';
 export type Check = { name: string; result: CheckResult; origin: 'code' | 'model'; affected?: readonly string[] };
 
 export function findDuplicateIds(items: ReadonlyArray<{ id: string }>): string[] {
@@ -19,7 +21,8 @@ export function findDuplicateIds(items: ReadonlyArray<{ id: string }>): string[]
 }
 
 export function resolveFactIds(factIds: readonly string[], verifiedFactIds: ReadonlySet<string>): { resolved: boolean; missing: string[] } {
-  const missing = [...new Set(factIds.filter((id) => !verifiedFactIds.has(id)))];
+  // Period IDs never resolve: code writes those claims, and a model fact could be named after one.
+  const missing = [...new Set(factIds.filter((id) => isPeriodFactId(id) || !verifiedFactIds.has(id)))];
   return { resolved: factIds.length > 0 && missing.length === 0, missing };
 }
 
@@ -37,6 +40,15 @@ export function acceptDraftClaims(sections: ReadonlyArray<{ heading: string; cla
     }
   }
   return drafts;
+}
+
+type Period = { start: string; end: string };
+
+// The only claims code writes. They restate stored dates and pass no model text through.
+export function buildPeriodClaims(periods: { requested: Period; authorized: Period }, caseId: string, firstPosition: number): ClaimDraft[] {
+  const rows = [['Requested', periods.requested, PERIOD_FACT_IDS.requested], ['Authorized', periods.authorized, PERIOD_FACT_IDS.authorized]] as const;
+  return rows.map(([label, { start, end }, factId], index) => ({ caseId, agentRunId: null, author: CODE_CLAIM_AUTHOR, sectionHeading: PERIOD_SECTION_HEADING, position: firstPosition + index,
+    text: `${label} period: ${start} through ${end}.`, type: 'administrative_fact', sourceKind: 'extracted_fact', status: 'source_verified', material: true, factIds: [factId], boundaryFlagged: false, originalText: null }));
 }
 
 export function acceptQualityIssues(issues: ReadonlyArray<Record<string, unknown>>, ctx: AcceptContext): IssueDraft[] {

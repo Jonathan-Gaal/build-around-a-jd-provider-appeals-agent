@@ -5,7 +5,7 @@ import type { Db } from "../db";
 import * as s from "../db/schema";
 import { CHECK_RESULTS, CLAIM_SOURCE_KINDS, CLAIM_STATUSES, CLAIM_TYPES, DOCUMENT_VERIFICATION_STATES, ISSUE_STATUSES, PACKET_KINDS, RUN_GROUP_STATUSES } from "../db/enums";
 import { businessDate, businessNow } from "../clock";
-import { citesOnlyPeriodFacts } from "./period-facts";
+import { CODE_CLAIM_AUTHOR, needsQuoteEvidence } from "./period-facts";
 import { HttpError } from "../http/errors";
 import { buildHashInput, computeApprovalHash, type CanonicalValue, type HashSource } from "./approval-hash";
 import { evaluateGate, type Blocker, type GateSnapshot } from "./gate";
@@ -79,9 +79,9 @@ export async function loadValidation(tx: Db, caseId: string, packetId?: string, 
   }
   const actualClaimIds = new Set(claimRows.map(({ id }) => id));
   const contentClaimIds = content.sections.flatMap(({ claimIds }) => claimIds);
-  const layoutValid = includedIds.size > 0 && contentClaimIds.length === new Set(contentClaimIds).size && contentClaimIds.length === includedIds.size && contentClaimIds.every((id) => includedIds.has(id) && actualClaimIds.has(id));
+  const layoutValid = claimRows.some((claim) => includedIds.has(claim.id) && claim.author !== CODE_CLAIM_AUTHOR) && contentClaimIds.length === new Set(contentClaimIds).size && contentClaimIds.length === includedIds.size && contentClaimIds.every((id) => includedIds.has(id) && actualClaimIds.has(id));
   if (!layoutValid) checks.push({ name: "packet_integrity", result: "fail", detail: "", affected: [], origin: "code" });
-  const evidenceValid = claimRows.filter((claim) => includedIds.has(claim.id) && claim.material && claim.status === "source_verified" && !citesOnlyPeriodFacts(claim.factIds)).every((claim) => evidence.some((entry) => entry.claimId === claim.id)) && evidence.every(({ span, document }) => document.verificationState === "verified" && span.startOffset >= 0 && span.endOffset > span.startOffset && span.endOffset <= document.content.length && document.content.slice(span.startOffset, span.endOffset) === span.excerpt);
+  const evidenceValid = claimRows.filter((claim) => includedIds.has(claim.id) && needsQuoteEvidence(claim)).every((claim) => evidence.some((entry) => entry.claimId === claim.id)) && evidence.every(({ span, document }) => document.verificationState === "verified" && span.startOffset >= 0 && span.endOffset > span.startOffset && span.endOffset <= document.content.length && document.content.slice(span.startOffset, span.endOffset) === span.excerpt);
   if (!evidenceValid) checks.push({ name: "evidence_integrity", result: "fail", detail: "", affected: [], origin: "code" });
   const source: HashSource = {
     packet: { id: packet.id, version: packet.version, kind: decode(z.enum(PACKET_KINDS), packet.kind), headings: content.sections.map(({ heading }) => heading), createdAt: packet.createdAt.toISOString() },

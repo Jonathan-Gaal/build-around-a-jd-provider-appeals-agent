@@ -104,6 +104,15 @@ async function main() {
   }
   validation = await blockers("blockers after clearing issues");
 
+  say("Clinician rejects the claims with no verified source");
+  const claims: {id: string; text: string}[] = await api("GET", `cases/${CASE}/claims`);
+  const unsupported = validation.blockers.filter((b: {code: string}) => b.code === "unsupported_material_claim");
+  for (const {objectId} of unsupported) {
+    console.log(`  rejected: ${claims.find((claim) => claim.id === objectId)?.text.slice(0, 90)}`);
+    await api("PATCH", `claims/${objectId}`, {status: "rejected"});
+  }
+  validation = await blockers("blockers after rejecting");
+
   say("Clinician approval");
   if (validation.blockers.length > 0) {
     console.log("  Approval is blocked. The clinician must reject or edit the flagged claims first.");
