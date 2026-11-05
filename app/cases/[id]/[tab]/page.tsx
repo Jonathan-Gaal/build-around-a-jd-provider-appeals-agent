@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { CaseWorkspace, type CaseTab } from "@/components/case-workspace";
 
-const tabs: CaseTab[] = ["summary", "evidence", "issues", "recheck", "approval"];
+const tabs: CaseTab[] = ["summary", "evidence", "issues", "recheck", "approval", "attachment", "dates"];
 
 export default async function CasePage({ params }: { params: Promise<{ id: string; tab: string }> }) {
   const { id, tab } = await params;

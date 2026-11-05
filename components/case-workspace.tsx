@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import { WorkspaceShell, useWorkspaceTheme } from "./workspace-shell";
 import { ApiError, readApi } from "@/lib/client/api";
 import type { CaseDetail, Claim, DocumentSummary, Issue, RunDetail, Validation } from "@/lib/client/types";
-import { ApprovalPanel, EvidencePanel, IssuesPanel, RecheckPanel, SummaryPanel } from "./case-panels";
+import { ApprovalPanel, EvidencePanel, IssuesPanel, RecheckPanel, SummaryPanel, AttachmentPanel, DatesPanel } from "./case-panels";
 
-export type CaseTab = "summary" | "evidence" | "issues" | "recheck" | "approval";
+export type CaseTab = "summary" | "evidence" | "issues" | "recheck" | "approval" | "attachment" | "dates";
 export type CaseData = {
   detail: CaseDetail; documents: DocumentSummary[]; claims: Claim[];
   issues: Issue[]; validation: Validation; run: RunDetail | null;
@@ -86,11 +86,15 @@ export function CaseWorkspace({ caseId, tab }: { caseId: string; tab: CaseTab })
             {error && <div role="alert" className={`rounded-xl border p-6 ${surface}`}>{error} <button className="ml-2 underline" onClick={() => { setLoading(true); void reload(); }}>Retry</button></div>}
             {data && !error && (
               <>
+                <nav aria-label="Review journey" className="mb-7 flex flex-wrap gap-2 border-b border-current/10 pb-5">{tabs.map((item, index) => <Link key={item.key} href={`${base}/${item.key}`} aria-current={tab === item.key ? "step" : undefined} className={`rounded-full px-3 py-2 text-xs ${tab === item.key ? "bg-[#649b72]/20 font-semibold" : muted}`}>{index + 1} · {item.label}</Link>)}</nav>
+                {data.detail.demoClock.enabled && <p className={`mb-5 text-xs ${muted}`}>Fixed demo clock: {formatDate(data.detail.demoClock.now, true)}</p>}
                 {tab === "summary" && <SummaryPanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
                 {tab === "evidence" && <EvidencePanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
                 {tab === "issues" && <IssuesPanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
                 {tab === "recheck" && <RecheckPanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
-                {tab === "approval" && <ApprovalPanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
+                {tab === "approval" && <ApprovalPanel key={`${data.validation.packetVersionId}:${data.validation.contentHash}`} data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
+                {tab === "attachment" && <AttachmentPanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
+                {tab === "dates" && <DatesPanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
                 <p className={`mt-8 text-xs ${muted}`}>This workspace prepares and checks a synthetic packet. A clinician reviews every claim and signs off the exact version. Nothing is sent to a payer.</p>
               </>
             )}

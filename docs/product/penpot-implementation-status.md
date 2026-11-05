@@ -23,3 +23,19 @@ The earlier implementation delivered the five main case tabs but did not reprodu
 | Denial and other roles | Not implemented | Marked future in PRD v3 and Penpot |
 
 Prototype-only shortcuts such as “show failed-run example” or “show changed-packet state” must not mutate or falsify the real review state. Run failures and packet changes must come from existing persisted state.
+
+## Case-screen corrections
+
+- Separate `/cases/UR-1042/attachment` and `/cases/UR-1042/dates` screens reproduce the note handoff and date verification steps. The attached state displays the persisted author, service date, receipt time, version and verification result. Date verification exposes both original source texts.
+- Every evidence passage can be selected; source links select the requested document. Exact offsets, verification method and document hash are visible with the passage.
+- Summary shows the missing-source warning and each agent's actual status. The review journey remains navigable across screens.
+- Recheck displays incomplete runs, retry actions and attempt counts while preserving the completed results.
+- Sign-off displays the validation checks, a visibly disabled action while blocked, the exact current packet preview, and signed-off version/hash with return to queue. An acknowledgement resets whenever the packet ID or hash changes.
+- The frontend additionally requires a completed run and matching packet ID/hash. The existing server remains authoritative.
+- The full historical sign-off/invalidation record is still an API gap. Current case status, blockers and packet hash are displayed; no historical clinician name, timestamp, old hash or invalidation event is invented.
+
+## Verification
+
+Browser walkthrough: demo login, queue search and empty result, Requests to the correct issue, original authorization/request source viewers, required date reason, missing-note attachment screen, blocked sign-off, profile, notification controls, avatar menu, and shared night theme across navigation.
+
+Automated checks: TypeScript, ESLint, production build, and 296 tests including 10 frontend approval-gate cases. A successful agent run and complete sign-off journey remain untested locally because replay recordings are absent.
