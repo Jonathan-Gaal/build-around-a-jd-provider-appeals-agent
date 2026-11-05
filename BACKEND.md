@@ -12,6 +12,15 @@ Implemented in the backend track: Postgres/Drizzle migrations and synthetic seed
 
 CLI commands load `.env.local`. Seed is idempotent and never resets spend or creates agent outputs/packets/approvals. Hosted uploads accept only exact allowlisted synthetic fixtures; the late Nov 2 note's parsed body is the upload content, without its Markdown front matter.
 
+## Hosted database (Neon)
+
+Neon project `ur-appeals`, Free plan, AWS US East, provisioned through the Vercel Marketplace on the `jonathan-gaal777` team. It holds `ur_appeals_app` and `ur_appeals_ledger`. Their runtime logins are `app_login` (member of `app_rw`) and `spend_login` (member of `spend_rw`). Each can connect only to its own database and neither is a superuser.
+
+- **Runtime URLs** use the pooled host with `sslmode=verify-full`.
+- **Migrations and seed** use the owner's direct connection, passed as `DATABASE_URL` on the command, which takes precedence over `.env.local`. Don't store the owner URL. `npx neonctl connection-string --project-id <id> --database-name <db>` retrieves it.
+- **Creating login roles:** use SQL. Neon's API and console add API-created roles to `neon_superuser`, which would defeat the restriction.
+- **Hosted integration runs** need a fresh database ending `_test` and one grant from the owner, because the suite checks grants with `SET LOCAL ROLE`: `GRANT app_rw TO current_user WITH SET TRUE, INHERIT FALSE`. Set `SPEND_LEDGER_URL=` on the command so a run can't reach the real ledger.
+
 ## Model execution
 
 `runAgent()` is the only model caller. Live calls require `ANTHROPIC_API_KEY`, a reachable shared `SPEND_LEDGER_URL`, and available budget. Preview live calls are refused. Every attempt reserves budget atomically; ordinary spending stops at $26, with the separately unlocked demo stop at $36.

@@ -102,10 +102,24 @@ export interface AgentInput {
   documents: SourceDocument[];
 }
 
-let defaultClient: Anthropic | undefined;
+/** Invalid or cut-off JSON reads as null, so the caller still sees stop_reason and usage. */
+export function readStructuredOutput(content: readonly { type: string; text?: string }[]): unknown {
+  const text = content.find((block) => block.type === "text")?.text;
+  if (text === undefined) return null;
+  try { return JSON.parse(text); } catch { return null; }
+}
+
+let defaultClient: ClaudeClient | undefined;
 function getClient(env: Env): ClaudeClient {
   // Config owns the only environment read; never accept a browser-provided key.
-  defaultClient ??= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY ?? "" });
+  if (!defaultClient) {
+    const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY ?? "" });
+    // The SDK's parse() throws on cut-off JSON, which loses stop_reason and the real usage.
+    defaultClient = { messages: { parse: async (params, options) => {
+      const message = await anthropic.messages.create(params, options);
+      return { parsed_output: readStructuredOutput(message.content), usage: message.usage, stop_reason: message.stop_reason };
+    } } };
+  }
   return defaultClient;
 }
 

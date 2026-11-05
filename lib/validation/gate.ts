@@ -26,7 +26,7 @@ export type GateSnapshot = {
   requestDocumentId: string | null;
   stay: { start: string; end: string } | null;
   claims: ReadonlyArray<{ id: string; included: boolean; status: ClaimStatus; material: boolean; boundaryFlagged: boolean }>;
-  checks: ReadonlyArray<{ name: string; result: CheckResult }>;
+  checks: ReadonlyArray<{ name: string; result: CheckResult; affected?: readonly string[] }>;
   hash: { recomputed: string; stored: string | null; requested: string | null };
 };
 
@@ -54,7 +54,9 @@ export function evaluateGate(snapshot: GateSnapshot): Blocker[] {
     else if (claim.material && !allowedStatuses.includes(claim.status)) add('unsupported_material_claim', 'claim', claim.id);
     if (claim.boundaryFlagged) add('boundary_phrase', 'claim', claim.id);
   }
-  for (const check of snapshot.checks) if (check.result === 'fail') add('validation_failed', 'check', check.name);
+  // Only a clinician's stored action clears a failed check; model output cannot set these statuses.
+  const clearedByClinician = (ids: readonly string[] = []) => ids.length > 0 && ids.every((id) => snapshot.claims.some((claim) => claim.id === id && (claim.status === 'rejected' || claim.status === 'clinician_edited')));
+  for (const check of snapshot.checks) if (check.result === 'fail' && !clearedByClinician(check.affected)) add('validation_failed', 'check', check.name);
   const { recomputed, stored, requested } = snapshot.hash;
   if (stored === null || recomputed !== stored || (requested !== null && requested !== recomputed)) add('hash_mismatch', 'packet_version');
   return blockers.sort((a, b) => BLOCKER_CODES.indexOf(a.code) - BLOCKER_CODES.indexOf(b.code) || ((a.objectId ?? '') < (b.objectId ?? '') ? -1 : (a.objectId ?? '') > (b.objectId ?? '') ? 1 : 0));

@@ -22,6 +22,7 @@
  *
  * Run it: `npx tsx scripts/run-clinical-documentation.ts` (see docs/architecture/reference-agent.md).
  */
+import { LIMITS } from "../config/limits";
 import { z } from "zod";
 import { formatDocuments, type SourceDocument } from "../harness/documents";
 import { wrapUntrusted } from "../harness/untrusted";
@@ -146,12 +147,12 @@ function buildPrompt(input: ClinicalDocumentationInput): string {
 // ---------------------------------------------------------------------------
 export const clinicalDocumentationAgent: AgentDef<ClinicalDocumentationInput, ClinicalDocumentationOutput> = {
   name: "clinical-documentation",
-  version: "1.2.0",
+  version: "1.3.0",
   system: SYSTEM,
   output: ClinicalDocumentationOutput,
   buildPrompt,
   extractQuotes: (out) => out.facts.flatMap((f) => f.quotes),
-  maxTokens: 8000,
+  maxTokens: LIMITS.AGENT_MAX_OUTPUT_TOKENS,
   timeoutMs: 60_000, // PRD section 8: 60-second timeout per call, one retry
   maxRetries: 1,
 };

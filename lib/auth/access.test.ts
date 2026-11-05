@@ -7,7 +7,8 @@ const clinician = { userId: "u-a", role: "clinician" };
 describe("default-deny access map", () => {
   it("pins all MVP actions and their allowed role", () => {
     expect([...ACTIONS]).toEqual(actions);
-    expect(Object.keys(ACCESS_RULES).sort()).toEqual([...actions].sort());
+    // Declared is not wired: each action must actually admit a clinician.
+    for (const action of actions) expect(checkRole(clinician, action)).toEqual({ allowed: true });
     for (const rule of Object.values(ACCESS_RULES)) expect(rule.roles).toEqual(["clinician"]);
   });
 

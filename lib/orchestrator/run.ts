@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import {and,desc,eq,inArray,lt,sql} from "drizzle-orm";
+import {and,asc,desc,eq,inArray,lt,sql} from "drizzle-orm";
 import type {Database,Db,Transaction} from "../db";
 import * as s from "../db/schema";
 import {getEnv,type Env,deploymentOf} from "../env";
@@ -15,7 +15,7 @@ import type {SourceDocument} from "../harness/documents";
 import {clinicalDocumentationAgent,computeDateCoverage,type Fact} from "../agents/clinical-documentation";
 import {caseAssemblyAgent,type CaseAssemblyInput} from "../agents/case-assembly";
 import {independentQualityAgent} from "../agents/independent-quality";
-import {acceptDraftClaims,findDuplicateIds,mergeChecks,acceptQualityIssues} from "./accept/accept";
+import {acceptDraftClaims,findDuplicateIds,mergeChecks,reportChecks,acceptQualityIssues} from "./accept/accept";
 import {scanAgentOutput} from "./accept/boundary";
 import {verifyQuotes} from "../harness/verify-quotes";
 import {getSpendLedger,checkSpendAdmission} from "../db/spend-ledger";
@@ -75,7 +75,7 @@ export async function executeGroup(db:Database,groupId:string,options:ExecutionO
   const [period]=await db.select().from(s.reviewPeriods).where(eq(s.reviewPeriods.caseId,caseId)).orderBy(desc(s.reviewPeriods.version)).limit(1);
   const [auth]=await db.select().from(s.authorizations).where(eq(s.authorizations.caseId,caseId));
   if(!caseRow||!period||!auth)throw new Error("run_input_missing");
-  const storedDocs=await db.select().from(s.documents).where(and(eq(s.documents.caseId,caseId),eq(s.documents.verificationState,"verified")));
+  const storedDocs=await db.select().from(s.documents).where(and(eq(s.documents.caseId,caseId),eq(s.documents.verificationState,"verified"))).orderBy(asc(s.documents.serviceDate),asc(s.documents.id));
   const documents:SourceDocument[]=storedDocs.filter(row=>["intake","treatment_plan","progress_note","authorization_record"].includes(row.type)).map(row=>({...row,author:row.author??undefined,serviceDate:row.serviceDate??undefined}));
   if(documents.length>LIMITS.CASE_MAX_DOCUMENTS||documents.reduce((sum,doc)=>sum+doc.content.length,0)>LIMITS.CASE_MAX_CHARS)throw new Error("run_input_limit");
   const records=await db.select().from(s.agentRuns).where(eq(s.agentRuns.runGroupId,groupId));
@@ -113,14 +113,17 @@ export async function executeGroup(db:Database,groupId:string,options:ExecutionO
   if(!draft.output)throw new Error(draft.errorKind??"agent_failed");
   const context={caseId,agentName:agents[1],agentRunId:recordIds.get(agents[1])!,verifiedFactIds:verifiedFacts,verifiedQuotes,runAgentNames:new Set<string>(agents)};
   const accepted=acceptDraftClaims(draft.output.sections,context).map(claim=>({...claim,id:randomUUID()}));
+  // Stable aliases keep this prompt identical between runs so replay can match it.
+  const claimIdByAlias=new Map(accepted.map((claim,position)=>[`claim-${position+1}`,claim.id]));
   let index=0;
-  const qualityDraft={...draft.output,sections:draft.output.sections.map(section=>({...section,claims:section.claims.map(claim=>({...claim,id:accepted[index++].id}))}))};
+  const qualityDraft={...draft.output,sections:draft.output.sections.map(section=>({...section,claims:section.claims.map(claim=>({...claim,id:`claim-${++index}`}))}))};
   await beginAgent(agents[2]);
   const quality=await runAgent(independentQualityAgent,{...assemblyInput,draft:qualityDraft},opts(agents[2]));
   if(!quality.output)throw new Error(quality.errorKind??"agent_failed");
   if(scanAgentOutput(draft.output,verifiedQuotes).flagged||scanAgentOutput(quality.output,verifiedQuotes).flagged)checks.push({name:"output_boundary",result:"fail",detail:"Agent output crosses clinical boundary.",affected:[]});
   const merged=mergeChecks(checks.map(check=>({...check,origin:"code" as const})),quality.output.checks.map(check=>({...check,origin:"model" as const})));
-  const report={checks:merged.map(check=>({...check,detail:"",affected:[]})),blockerCodes:[]};
+  const quoteFailureClaims=accepted.filter(claim=>claim.factIds.some(id=>!verifiedFacts.has(id))).map(claim=>claim.id);
+  const report={checks:reportChecks(merged,claimIdByAlias,quoteFailureClaims),blockerCodes:[]};
   await withCaseLock(db,caseId,async tx=>{
    const [current]=await tx.select().from(s.runGroups).where(eq(s.runGroups.id,groupId));
    if(current.status!=="running")return;
@@ -132,13 +135,14 @@ export async function executeGroup(db:Database,groupId:string,options:ExecutionO
    for(const issue of acceptQualityIssues(quality.output!.issues,{...context,agentName:agents[2],agentRunId:recordIds.get(agents[2])!})){
     if(issue.type!=="missing_document"&&issue.type!=="date_conflict")continue;
     const {sendBackTo,...row}=issue;void sendBackTo;
-    await tx.insert(s.issues).values({...row,id:randomUUID(),type:issue.type,blocking:true,ownerId:caseRow.assignedTo}).onConflictDoNothing();
+    // Visible to the clinician but never blocking: code computes required documents and date conflicts.
+    await tx.insert(s.issues).values({...row,id:randomUUID(),type:issue.type,blocking:false,ownerId:caseRow.assignedTo}).onConflictDoNothing();
    }
    const [previous]=await tx.select().from(s.packetVersions).where(eq(s.packetVersions.caseId,caseId)).orderBy(desc(s.packetVersions.version)).limit(1);
    await tx.update(s.runGroups).set({status:"complete",finishedAt:new Date(),heartbeatAt:new Date()}).where(eq(s.runGroups.id,groupId));
    const candidate=async(candidateTx:Transaction)=>{
    const packetId=randomUUID();
-   const content={sections:qualityDraft.sections.map(section=>({heading:section.heading,claimIds:section.claims.map(claim=>claim.id)}))};
+   const content={sections:qualityDraft.sections.map(section=>({heading:section.heading,claimIds:section.claims.map(claim=>claimIdByAlias.get(claim.id)!)}))};
    await candidateTx.insert(s.packetVersions).values({id:packetId,caseId,version:(previous?.version??0)+1,kind:"review_packet",content,includedClaimIds:accepted.map(claim=>claim.id),contentHash:"pending",hashInput:{},validationReport:report,runGroupId:groupId});
    if(accepted.length)await candidateTx.insert(s.claims).values(accepted.map(claim=>({...claim,packetVersionId:packetId})));
    const facts=new Map<string,Fact>(clinical.output!.facts.map(fact=>[fact.id,fact]));

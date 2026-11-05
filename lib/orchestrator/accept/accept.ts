@@ -5,7 +5,7 @@ import { scanText } from './boundary';
 export type AcceptContext = { caseId: string; agentName: string; agentRunId: string; verifiedFactIds: ReadonlySet<string>; verifiedQuotes: readonly string[]; runAgentNames: ReadonlySet<string> };
 export type ClaimDraft = { caseId: string; agentRunId: string; author: string; sectionHeading: string; position: number; text: string; type: 'clinical_fact' | 'narrative'; sourceKind: 'direct_quote' | 'extracted_fact' | 'agent_synthesis'; status: 'source_verified' | 'unsupported'; material: true; factIds: string[]; boundaryFlagged: boolean; originalText: null };
 export type IssueDraft = { caseId: string; type: IssueType; severity: IssueSeverity; blocking: boolean; status: 'open'; source: string; sourceRunId: string; description: string; ownerId: null; dedupeKey: string; sendBackTo: string | null };
-export type Check = { name: string; result: CheckResult; origin: 'code' | 'model' };
+export type Check = { name: string; result: CheckResult; origin: 'code' | 'model'; affected?: readonly string[] };
 
 export function findDuplicateIds(items: ReadonlyArray<{ id: string }>): string[] {
   const seen = new Set<string>();
@@ -44,6 +44,19 @@ export function acceptQualityIssues(issues: ReadonlyArray<Record<string, unknown
     return { caseId: ctx.caseId, type, severity, blocking: issue.blocking !== false, status: 'open', source: ctx.agentName,
       sourceRunId: ctx.agentRunId, description, ownerId: null,
       dedupeKey: `${ctx.agentName}:${type}:${createHash('sha256').update(description).digest('hex').slice(0, 16)}`, sendBackTo };
+  });
+}
+
+/**
+ * The stored report. A failed check names the claims a clinician can act on to clear it.
+ * Model findings naming no real claim, and quote failures no claim relies on, stay visible as needs_review.
+ */
+export function reportChecks(merged: readonly Check[], claimIds: ReadonlyMap<string, string>, quoteFailureClaims: readonly string[]) {
+  return merged.map((check) => {
+    const named = check.origin === 'code' ? (check.name === 'quote_support' ? quoteFailureClaims : []) : (check.affected ?? []).flatMap((alias) => claimIds.get(alias) ?? []);
+    const affected = [...new Set(named)];
+    const nothingToAct = affected.length === 0 && (check.origin === 'model' || check.name === 'quote_support');
+    return { name: check.name, origin: check.origin, detail: '', affected, result: check.result === 'fail' && nothingToAct ? 'needs_review' as const : check.result };
   });
 }
 

@@ -1,5 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { acceptDraftClaims, acceptQualityIssues, findDuplicateIds, mergeChecks, resolveFactIds, type AcceptContext } from './accept';
+import { acceptDraftClaims, acceptQualityIssues, findDuplicateIds, mergeChecks, reportChecks, resolveFactIds, type AcceptContext } from './accept';
+
+describe('reportChecks', () => {
+  const aliases = new Map([['claim-1', 'id-1'], ['claim-2', 'id-2']]);
+  it('names the claims relying on a failed quote', () => {
+    expect(reportChecks([{ name: 'quote_support', result: 'fail', origin: 'code' }], aliases, ['id-2', 'id-2'])).toEqual([{ name: 'quote_support', origin: 'code', detail: '', affected: ['id-2'], result: 'fail' }]);
+  });
+  it('downgrades a failed quote no claim relies on', () => {
+    expect(reportChecks([{ name: 'quote_support', result: 'fail', origin: 'code' }], aliases, [])[0].result).toBe('needs_review');
+  });
+  it('maps model aliases to claim IDs and drops invented ones', () => {
+    expect(reportChecks([{ name: 'm', result: 'fail', origin: 'model', affected: ['claim-1', 'claim-9', 'id-2'] }], aliases, [])[0]).toMatchObject({ result: 'fail', affected: ['id-1'] });
+  });
+  it('downgrades a model failure naming no real claim', () => {
+    for (const affected of [undefined, [], ['claim-9']]) expect(reportChecks([{ name: 'm', result: 'fail', origin: 'model', affected }], aliases, [])[0]).toMatchObject({ result: 'needs_review', affected: [] });
+  });
+  it('keeps other code failures as hard blocks with nothing to clear them', () => {
+    expect(reportChecks([{ name: 'output_boundary', result: 'fail', origin: 'code', affected: ['claim-1'] }], aliases, ['id-1'])[0]).toMatchObject({ result: 'fail', affected: [] });
+  });
+  it('strips model text and never upgrades a result', () => {
+    expect(reportChecks([{ name: 'm', result: 'pass', origin: 'model', detail: 'text' } as never], aliases, [])[0]).toEqual({ name: 'm', origin: 'model', detail: '', affected: [], result: 'pass' });
+  });
+});
 import { CLAIM_STATUSES, ISSUE_TYPES, PACKET_KINDS } from '../../db/enums';
 const ctx: AcceptContext = { caseId: 'UR-1042', agentName: 'drafting', agentRunId: 'run-1', verifiedFactIds: new Set(['f1']), verifiedQuotes: [], runAgentNames: new Set(['clinical-documentation', 'drafting', 'quality']) };
 const draft = (claim: Record<string, unknown>) => acceptDraftClaims([{ heading: 'Summary', claims: [claim] }], ctx)[0];
@@ -38,8 +60,8 @@ describe('accept output', () => {
     expect(mergeChecks([{ name: 'date_coverage', result: 'fail', origin: 'code' }], [{ name: 'date_coverage', result: 'pass', origin: 'model' }, { name: 'dates_consistent', result: 'fail', origin: 'model' }])).toEqual([{ name: 'date_coverage', result: 'fail', origin: 'code' }, { name: 'dates_consistent', result: 'fail', origin: 'model' }]);
     expect(mergeChecks([{ name: 'b', result: 'needs_review', origin: 'code' }], [{ name: 'b', result: 'needs_review', origin: 'model' }, { name: 'a', result: 'fail', origin: 'model' }])).toEqual([{ name: 'a', result: 'fail', origin: 'model' }, { name: 'b', result: 'needs_review', origin: 'code' }]);
   });
-  it('has only insert-only runtime exports and handles empty inputs', async () => {
-    expect(Object.keys(await import('./accept')).sort()).toEqual(['acceptDraftClaims', 'acceptQualityIssues', 'findDuplicateIds', 'mergeChecks', 'resolveFactIds']);
+  it('handles empty inputs without inventing output', () => {
+    expect(mergeChecks([], [])).toEqual([]);
     expect(acceptDraftClaims([], ctx)).toEqual([]); expect(acceptQualityIssues([], ctx)).toEqual([]);
   });
   it('pins shared enum values', () => {

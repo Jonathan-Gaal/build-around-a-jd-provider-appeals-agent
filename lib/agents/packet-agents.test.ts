@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { replayKey } from "../harness/replay";
 import { CaseAssemblyOutput, caseAssemblyAgent, type CaseAssemblyInput } from "./case-assembly";
 import { IndependentQualityOutput, independentQualityAgent } from "./independent-quality";
 
@@ -65,13 +66,19 @@ describe("MVP packet agent contracts", () => {
     expect(prompt).toContain("Patient attended group.");
   });
 
+  it("a version bump makes older recordings miss", () => {
+    const prompt = caseAssemblyAgent.buildPrompt(input);
+    const keyFor = (version: string) => replayKey(caseAssemblyAgent.name, version, "claude-haiku-5-5", caseAssemblyAgent.system, prompt);
+    expect(keyFor("1.0.0")).not.toBe(keyFor(caseAssemblyAgent.version));
+    expect(keyFor(caseAssemblyAgent.version).startsWith(`${caseAssemblyAgent.name}@${caseAssemblyAgent.version}-`)).toBe(true);
+  });
+
   it("keeps static system prompts and fixed single-call retry bounds", () => {
     for (const agent of [caseAssemblyAgent, independentQualityAgent]) {
       expect(agent.system).toContain("Never decide or state whether care is medically necessary");
       expect(agent.system).not.toContain("2026-11-03");
       expect(agent.timeoutMs).toBe(60000);
       expect(agent.maxRetries).toBe(1);
-      expect(agent.version).toBe("1.0.0");
     }
   });
 });

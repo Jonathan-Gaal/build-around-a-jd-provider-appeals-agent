@@ -103,6 +103,38 @@ async function testStaleSweep(foreignUserId:string,approvalBody:unknown){
  const reservations=await db.select().from(s.spendReservations).where(eq(s.spendReservations.agentRunRef,spendRef));
  assert.deepEqual(reservations.map(row=>row.status),["settled"],"late worker still settles spend");
 }
+async function testFailedQuoteClears(approvalBody:{acknowledgement:string}){
+ await db.delete(s.rateLimitCounters);
+ const client:ClaudeClient={messages:{parse:async params=>{
+  const system=JSON.stringify(params.system);
+  const rows=await db.select().from(s.documents).where(and(eq(s.documents.caseId,"UR-1042"),eq(s.documents.type,"progress_note")));
+  const note=rows.find(row=>row.serviceDate==="2026-11-03")!,quote=note.content.split("\n").find(line=>line.trim().length>30)!;
+  let output:unknown;
+  if(system.includes("Clinical Documentation agent"))output={facts:[{id:"f1",category:"symptoms",statement:quote,serviceDate:note.serviceDate,quotes:[{documentId:note.id,text:quote}]},{id:"f2",category:"symptoms",statement:"Synthetic unsupported fact",serviceDate:note.serviceDate,quotes:[{documentId:note.id,text:"An invented statement absent from this record."}]}],gaps:[]};
+  else if(system.includes("Case Assembly and Drafting agent"))output={mode:"review_packet",sections:[{heading:"Current documentation",claims:[{text:quote,sourceKind:"extracted_fact",factIds:["f1"]},{text:"Synthetic unsupported claim",sourceKind:"extracted_fact",factIds:["f2"]}]}],openQuestions:[]};
+  else output={checks:[{name:"model_no_claims",result:"fail",detail:"Finding with no claim",affected:[]},{name:"model_named_claim",result:"fail",detail:"Finding on claim 2",affected:["claim-2","claim-unknown"]}],issues:[{type:"missing_document",severity:"major",blocking:true,description:"Synthetic: no discharge plan",sendBackTo:null}]};
+  return {parsed_output:output,usage:{input_tokens:100,output_tokens:50},stop_reason:"end_turn"};
+ }}};
+ const run=await okay("POST","cases/UR-1042/runs",{});scheduled.length=0;
+ await executeGroup(db,run.runGroupId,{client,env:{...integrationEnv,AGENT_REPLAY:false},replay:"off",spend:{ledger:createSpendLedger(db),environment:"local",agentRunRef:run.runGroupId}});
+ assert.equal((await okay("GET",`runs/${run.runGroupId}`)).status,"complete");
+ const issues=await okay("GET","cases/UR-1042/issues"),finding=issues.find((issue:{description:string})=>issue.description==="Synthetic: no discharge plan");
+ assert.equal(finding.blocking,false,"a model issue stays visible but never blocks, even when the model asks");
+ let validation=await okay("GET","cases/UR-1042/validation");
+ const codes=()=>validation.blockers.map((b:{code:string;objectId?:string})=>b.code+":"+(b.objectId??"")).sort();
+ const claimRows=await okay("GET","cases/UR-1042/claims"),bad=claimRows.find((claim:{status:string})=>claim.status==="unsupported"),good=claimRows.find((claim:{status:string})=>claim.status==="source_verified");
+ assert.deepEqual(codes(),["unsupported_material_claim:"+bad.id,"validation_failed:model_named_claim","validation_failed:quote_support"].sort(),"failures name the claim; a finding with no claim does not block");
+ const stored=validation.report.checks.find((check:{name:string})=>check.name==="quote_support");assert.deepEqual(stored.affected,[bad.id]);
+ assert.equal((await api("POST","cases/UR-1042/approve",{...approvalBody,packetVersionId:validation.packetVersionId,contentHash:validation.contentHash})).status,409);
+ await okay("PATCH",`claims/${bad.id}`,{status:"rejected"});
+ validation=await okay("GET","cases/UR-1042/validation");assert.deepEqual(validation.blockers,[],"rejecting the affected claim clears both failed checks");
+ const approved=await okay("POST","cases/UR-1042/approve",{...approvalBody,packetVersionId:validation.packetVersionId,contentHash:validation.contentHash});assert.equal(approved.status,"valid");
+ // Editing an approved packet clones claims under new IDs; the rejection must still count.
+ await okay("PATCH",`claims/${good.id}`,{text:"Clinician reviewed the documented symptoms again."});
+ validation=await okay("GET","cases/UR-1042/validation");assert.deepEqual(validation.blockers,[],"a cloned packet keeps the clinician's rejection");
+ assert.notEqual(validation.packetVersionId,approved.packetVersionId);
+ await okay("POST","cases/UR-1042/approve",{...approvalBody,packetVersionId:validation.packetVersionId,contentHash:validation.contentHash});
+}
 async function main(){
  await seed(db);await seed(db);
  const [initial]=await db.select({count:sql<number>`count(*)::int`}).from(s.documents).where(eq(s.documents.caseId,"UR-1042"));assert.equal(initial.count,7,"fresh test database required");
@@ -145,12 +177,13 @@ async function main(){
  status=await okay("GET",`runs/${failedGroup.id}`);assert.equal(status.status,"failed");assert.deepEqual(status.agents.map((row:{status:string})=>row.status).sort(),["failed","skipped","skipped"]);
  validation=await okay("GET","cases/UR-1042/validation");assert(validation.blockers.some((b:{code:string})=>b.code==="run_incomplete"));
  await testStaleSweep(foreign,approvalBody);
+ await testFailedQuoteClears(approvalBody);
  await assert.rejects(db.update(s.auditEvents).set({action:"tamper"}),/Failed query/);
  await db.transaction(async tx=>{await tx.execute(sql`SET LOCAL ROLE app_rw`);await tx.select().from(s.documents).limit(1);});
  await assert.rejects(db.transaction(async tx=>{await tx.execute(sql`SET LOCAL ROLE app_rw`);await tx.update(s.documents).set({content:"tamper"}).where(eq(s.documents.id,uploaded.id));}));
  await assert.rejects(db.transaction(async tx=>{await tx.execute(sql`SET LOCAL ROLE app_rw`);await tx.delete(s.auditEvents);}));
  await testInvariantChecks(db);await testSameCaseConstraints(db);
  await testSpendLedger(db);await testApproval(db);await testAuth(db);
- console.log(JSON.stringify({status:"passed",mode:"fake-client + real PostgreSQL",liveModelCalls:0,checks:["idempotent seed","full UR-1042 flow","source-linked approval","concurrent approval","identical rerun","duplicate execution","immutable history","cross-case routes","failed run skips","stale sweep on poll, case read, gate and approval","late worker cannot undo sweep","audit trigger","document grants","invariant checks","same-case foreign keys","spend concurrency","auth throttle"]},null,2));
+ console.log(JSON.stringify({status:"passed",mode:"fake-client + real PostgreSQL",liveModelCalls:0,checks:["idempotent seed","full UR-1042 flow","source-linked approval","concurrent approval","identical rerun","duplicate execution","immutable history","cross-case routes","failed run skips","stale sweep on poll, case read, gate and approval","late worker cannot undo sweep","failed quote clears only by clinician action","model issues never block","audit trigger","document grants","invariant checks","same-case foreign keys","spend concurrency","auth throttle"]},null,2));
 }
 main().finally(()=>pool.end());

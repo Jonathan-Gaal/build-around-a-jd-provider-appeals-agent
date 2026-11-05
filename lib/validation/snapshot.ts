@@ -28,6 +28,12 @@ function decode<T>(schema: z.ZodType<T>, value: unknown): T {
   return result.data;
 }
 
+/** A cloned packet's claims get new IDs; its failed checks must keep naming them. */
+export function remapReportClaims(report: unknown, ids: ReadonlyMap<string, string>) {
+  const decoded = decode(reportSchema, report);
+  return { ...decoded, checks: decoded.checks.map((check) => ({ ...check, affected: check.affected.map((id) => ids.get(id) ?? id) })) };
+}
+
 export async function loadValidation(tx: Db, caseId: string, packetId?: string, requestedHash?: string): Promise<LoadedValidation> {
   const [caseRecord] = await tx.select().from(s.cases).where(eq(s.cases.id, caseId));
   if (!caseRecord) throw new HttpError(404, "not_found");

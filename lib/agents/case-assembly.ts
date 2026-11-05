@@ -57,11 +57,11 @@ function buildPrompt(input: CaseAssemblyInput): string {
 // 7. Definition: no tools, database, clock, environment or direct API access.
 export const caseAssemblyAgent: AgentDef<CaseAssemblyInput, CaseAssemblyOutput> = {
   name: "case-assembly",
-  version: "1.0.0",
+  version: "1.1.0",
   system: SYSTEM,
   output: CaseAssemblyOutput,
   buildPrompt,
-  maxTokens: 8000,
+  maxTokens: LIMITS.AGENT_MAX_OUTPUT_TOKENS,
   timeoutMs: LIMITS.CALL_TIMEOUT_MS,
   maxRetries: LIMITS.CALL_MAX_ATTEMPTS - 1,
 };

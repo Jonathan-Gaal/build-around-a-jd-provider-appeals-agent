@@ -40,6 +40,28 @@ describe('approval gate', () => {
     expect(evaluateGate({ ...ready, authorizationDocumentId: id, documents: [...ready.documents, { id: 'rejected', type: 'authorization_record', serviceDate: null, verificationState: 'rejected' }] }).map((blocker) => [blocker.code, blocker.objectId])).toEqual([['required_document_missing', 'authorization_record']]);
   });
   it.each([{ stored: null, recomputed: 'abc', requested: null }, { stored: 'old', recomputed: 'abc', requested: null }, { stored: 'abc', recomputed: 'abc', requested: 'old' }])('blocks hash mismatch', (hash) => expect(evaluateGate({ ...ready, hash }).map((blocker) => blocker.code)).toEqual(['hash_mismatch']));
+  describe('clearing a failed check', () => {
+    const withClaims = (statuses: ClaimStatus[], affected?: string[]) => evaluateGate({ ...ready,
+      claims: statuses.map((status, index) => ({ id: `c${index}`, included: status !== 'rejected', material: true, status, boundaryFlagged: false })),
+      checks: [{ name: 'quote_support', result: 'fail', ...(affected ? { affected } : {}) }] }).map((blocker) => blocker.code);
+    it('clears when every affected claim was rejected or edited by the clinician', () => {
+      expect(withClaims(['rejected'], ['c0'])).toEqual([]);
+      expect(withClaims(['clinician_edited'], ['c0'])).toEqual([]);
+      expect(withClaims(['rejected', 'clinician_edited'], ['c0', 'c1'])).toEqual([]);
+    });
+    it('stays blocked while any affected claim has no clinician action', () => {
+      expect(withClaims(['rejected', 'source_verified'], ['c0', 'c1'])).toEqual(['validation_failed']);
+      expect(withClaims(['source_verified'], ['c0'])).toEqual(['validation_failed']);
+    });
+    it.each(['agent_prepared', 'source_verified', 'clinician_approved'] as ClaimStatus[])('%s does not clear', (status) => {
+      expect(withClaims([status], ['c0'])).toContain('validation_failed');
+    });
+    it('fails closed with no named claim or an unknown claim', () => {
+      expect(withClaims(['rejected'])).toEqual(['validation_failed']);
+      expect(withClaims(['rejected'], [])).toEqual(['validation_failed']);
+      expect(withClaims(['rejected'], ['c0', 'not-a-claim'])).toEqual(['validation_failed']);
+    });
+  });
   it('only failed validation checks block, with sorted stable identifiers', () => {
     expect(evaluateGate({ ...ready, checks: [{ name: 'z', result: 'fail' }, { name: 'a', result: 'fail' }, { name: 'review', result: 'needs_review' }] }).map((blocker) => [blocker.code, blocker.objectId])).toEqual([['validation_failed', 'a'], ['validation_failed', 'z']]);
     expect(evaluateGate(ready).some((blocker) => blocker.code === 'objections_missing')).toBe(false);
