@@ -180,10 +180,14 @@ async function main(){
  const [initial]=await db.select({count:sql<number>`count(*)::int`}).from(s.documents).where(eq(s.documents.caseId,"UR-1042"));assert.equal(initial.count,7,"fresh test database required");
  assert.equal((await okay("GET","cases")).length,1);
  actor=null;assert.equal((await api("GET","cases")).status,401);actor={userId:DEMO_USER_ID,role:"clinician"};
+ // House rule 1: an open model finding on the same key must not stop code raising the blocking issue.
+ await db.update(s.issues).set({severity:"minor",blocking:false,source:"independent_quality",description:"Model finding: note absent"}).where(and(eq(s.issues.caseId,"UR-1042"),eq(s.issues.dedupeKey,"missing_document:progress_note:2026-11-02")));
  const first=await okay("POST","cases/UR-1042/runs",{});
  assert.equal((await api("POST","cases/UR-1042/runs",{})).status,409);
  await runScheduled();
  let status=await okay("GET",`runs/${first.runGroupId}`);assert.equal(status.status,"complete",JSON.stringify(status));assert.equal(status.agents.length,3);
+ const raised=(await okay("GET","cases/UR-1042/issues")).filter((issue:{requiredServiceDate:string|null})=>issue.requiredServiceDate==="2026-11-02");
+ assert.deepEqual(raised.map(({blocking,source,severity,description}:{blocking:boolean;source:string;severity:string;description:string})=>({blocking,source,severity,description})),[{blocking:true,source:"code",severity:"critical",description:"Progress note for 2026-11-02 is missing"}],"code takes over an open model finding on its key");
  let validation=await okay("GET","cases/UR-1042/validation");assert(validation.blockers.some((b:{code:string})=>b.code==="date_coverage_gap"));
  assert.equal((await api("POST","cases/UR-1042/approve",{packetVersionId:validation.packetVersionId,contentHash:validation.contentHash,acknowledgement:"Reviewed synthetic record"})).status,409);
  const raw=await readFile("fixtures/ur-1042/late-arrival/note-2026-11-02.md","utf8"),note=parseFrontMatter(raw);
@@ -225,6 +229,6 @@ async function main(){
  await assert.rejects(db.transaction(async tx=>{await tx.execute(sql`SET LOCAL ROLE app_rw`);await tx.delete(s.auditEvents);}));
  await testInvariantChecks(db);await testSameCaseConstraints(db);
  await testSpendLedger(db);await testApproval(db);await testAuth(db);
- console.log(JSON.stringify({status:"passed",mode:"fake-client + real PostgreSQL",liveModelCalls:0,checks:["idempotent seed","full UR-1042 flow","source-linked approval","concurrent approval","identical rerun","duplicate execution","immutable history","cross-case routes","failed run skips","stale sweep on poll, case read, gate and approval","late worker cannot undo sweep","failed quote clears only by clinician action","period IDs verify nothing","period claims written by code","model issues never block","audit trigger","document grants","invariant checks","same-case foreign keys","spend concurrency","auth throttle"]},null,2));
+ console.log(JSON.stringify({status:"passed",mode:"fake-client + real PostgreSQL",liveModelCalls:0,checks:["idempotent seed","full UR-1042 flow","source-linked approval","concurrent approval","identical rerun","duplicate execution","immutable history","cross-case routes","failed run skips","stale sweep on poll, case read, gate and approval","late worker cannot undo sweep","failed quote clears only by clinician action","period IDs verify nothing","period claims written by code","model issues never block","model finding cannot suppress a code blocker","audit trigger","document grants","invariant checks","same-case foreign keys","spend concurrency","auth throttle"]},null,2));
 }
 main().finally(()=>pool.end());
