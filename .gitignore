@@ -9,6 +9,22 @@ node_modules/
 next-env.d.ts
 *.pem
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local editor, OS, and test output
+Thumbs.db
+.idea/
+playwright-report/
+test-results/
+*.log
+
+# Local database exports and private keys
+*.dump
+*.key
+*.p12
+*.pfx
 
 # env files: never commit secrets; only the example is tracked
 .env*
