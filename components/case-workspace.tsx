@@ -117,11 +117,11 @@ export function CaseWorkspace({ caseId, tab }: { caseId: string; tab: CaseTab })
             {error && <div role="alert" className={`rounded-xl border p-6 ${surface}`}>{error} <button className="ml-2 underline" onClick={() => { setLoading(true); void reload(); }}>Retry</button></div>}
             {data && !error && (
               <>
-                {tab === "summary" && <SummaryPanel data={data} night={night} base={base} />}
-                {tab === "evidence" && <EvidencePanel data={data} night={night} base={base} />}
-                {tab === "issues" && <IssuesPanel data={data} night={night} base={base} />}
-                {tab === "recheck" && <RecheckPanel data={data} night={night} base={base} />}
-                {tab === "approval" && <ApprovalPanel data={data} night={night} base={base} />}
+                {tab === "summary" && <SummaryPanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
+                {tab === "evidence" && <EvidencePanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
+                {tab === "issues" && <IssuesPanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
+                {tab === "recheck" && <RecheckPanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
+                {tab === "approval" && <ApprovalPanel data={data} night={night} base={base} caseId={caseId} onChange={reload} />}
                 <p className={`mt-8 text-xs ${muted}`}>This workspace prepares and checks a synthetic packet. A clinician reviews every claim and signs off the exact version. Nothing is sent to a payer.</p>
               </>
             )}

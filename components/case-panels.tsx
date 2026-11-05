@@ -2,16 +2,35 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { readApi } from "@/lib/client/api";
+import { ApiError, readApi, writeApi } from "@/lib/client/api";
 import type { Claim, DocumentDetail, EvidenceSpan } from "@/lib/client/types";
 import type { CaseData } from "./case-workspace";
 import { formatDate, statusLabel } from "./case-workspace";
 
-type Props = { data: CaseData; night: boolean; base: string };
+type Props = { data: CaseData; night: boolean; base: string; caseId: string; onChange: () => Promise<void> };
 const card = (night: boolean) => `rounded-2xl border p-6 ${night ? "border-[#304b3b] bg-[#1b2e26]" : "border-[#dce5de] bg-white"}`;
 const muted = (night: boolean) => night ? "text-[#a9bbad]" : "text-[#687c6d]";
 const primary = "inline-flex items-center justify-center rounded-lg bg-[#255e4b] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1f513f]";
 const secondary = (night: boolean) => `inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold ${night ? "bg-[#294b38] text-[#d6e9d9]" : "bg-[#e5f0e7] text-[#2c5e43]"}`;
+
+function useAction(onChange: () => Promise<void>) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  async function perform(action: () => Promise<void>, success: string): Promise<boolean> {
+    setBusy(true); setError(null); setMessage(null);
+    try { await action(); await onChange(); setMessage(success); return true; }
+    catch (cause) {
+      setError(cause instanceof ApiError ? `The action was refused: ${cause.code.replaceAll("_", " ")}.` : "The action could not complete. Please try again.");
+      await onChange(); return false;
+    } finally { setBusy(false); }
+  }
+  return { busy, error, message, perform };
+}
+
+function ActionFeedback({ error, message }: { error: string | null; message: string | null }) {
+  return <>{error && <p role="alert" className="mt-4 text-sm text-[#bc6552]">{error}</p>}{message && <p role="status" className="mt-4 text-sm text-[#4d9b61]">{message}</p>}</>;
+}
 
 function PageHeading({ eyebrow, title, description, night }: { eyebrow: string; title: string; description: string; night: boolean }) {
   return <div className="mb-8"><p className={`text-xs font-bold uppercase tracking-widest ${night ? "text-[#8dbf9b]" : "text-[#568267]"}`}>{eyebrow}</p><h1 className="mt-3 font-serif text-4xl">{title}</h1><p className={`mt-2 text-sm ${muted(night)}`}>{description}</p></div>;
@@ -41,13 +60,17 @@ export function SummaryPanel({ data, night, base }: Props) {
   </>;
 }
 
-export function EvidencePanel({ data, night, base }: Props) {
+export function EvidencePanel({ data, night, base, onChange }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [documentId, setDocumentId] = useState<string | null>(null);
   const [document, setDocument] = useState<DocumentDetail | null>(null);
   const [sourceError, setSourceError] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [flagReason, setFlagReason] = useState("");
+  const action = useAction(onChange);
   useEffect(() => { setSelectedId(new URLSearchParams(window.location.search).get("claim")); }, []);
   const selected = data.claims.find(claim => claim.id === selectedId) ?? data.claims[0] ?? null;
+  useEffect(() => { setDraft(selected?.text ?? ""); }, [selected?.id, selected?.text]);
   const span: EvidenceSpan | null = selected?.evidence[0] ?? null;
   const activeDocumentId = documentId ?? span?.documentId ?? data.documents[0]?.id ?? null;
   useEffect(() => {
@@ -64,6 +87,7 @@ export function EvidencePanel({ data, night, base }: Props) {
       <section className={card(night)} aria-labelledby="claim-list"><h2 id="claim-list" className="text-lg font-semibold">Claim to source map</h2>
         {data.claims.length ? <div className="mt-5 space-y-3">{data.claims.map(claim => <button key={claim.id} type="button" onClick={() => { setSelectedId(claim.id); setDocumentId(null); }} aria-pressed={selected?.id === claim.id} className={`w-full rounded-xl border p-4 text-left transition-colors ${selected?.id === claim.id ? night ? "border-[#7aa98a] bg-[#284337]" : "border-[#6d9d7b] bg-[#f0f7f0]" : night ? "border-[#365243] hover:bg-[#233a2e]" : "border-[#e1e9e2] hover:bg-[#f8faf8]"}`}><ClaimBadge claim={claim} night={night} /><p className="mt-3 text-sm leading-6">{claim.text}</p><p className={`mt-2 text-xs ${muted(night)}`}>{claim.evidence.length ? `${claim.evidence.length} source passage${claim.evidence.length === 1 ? "" : "s"}` : "No verified source passage"}</p></button>)}</div> : <p className={`mt-5 text-sm ${muted(night)}`}>No packet claims are available yet. Start a review run from Recheck.</p>}
         <Link href={`${base}/issues`} className={`${secondary(night)} mt-5`}>Review blockers →</Link>
+        {selected && <div className="mt-7 border-t border-current/10 pt-5"><h3 className="font-semibold">Clinician review of selected claim</h3><label className="mt-4 block text-sm">Edit draft wording<textarea value={draft} onChange={event => setDraft(event.target.value)} rows={3} maxLength={2000} className={`mt-2 w-full rounded-lg border p-3 outline-none focus:border-[#649b72] ${night ? "border-[#45614c] bg-[#15271e]" : "border-[#d1dfd3] bg-white"}`} /></label><div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled={action.busy || !draft.trim() || draft.trim() === selected.text} onClick={() => { void action.perform(async () => { await writeApi(`/api/claims/${selected.id}`, "PATCH", { text: draft.trim() }); setSelectedId(null); }, "Claim wording saved. Review the new packet state before sign-off."); }} className={`${primary} disabled:cursor-not-allowed disabled:opacity-50`}>Save wording</button><button type="button" disabled={action.busy} onClick={() => { void action.perform(async () => { await writeApi(`/api/claims/${selected.id}`, "PATCH", { status: "rejected" }); setSelectedId(null); }, "Claim rejected and removed from the packet preview."); }} className={`${secondary(night)} disabled:opacity-50`}>Reject claim</button></div><label className="mt-5 block text-sm">Citation concern<input value={flagReason} onChange={event => setFlagReason(event.target.value)} maxLength={2000} placeholder="Why does this source need review?" className={`mt-2 w-full rounded-lg border px-3 py-2 outline-none focus:border-[#649b72] ${night ? "border-[#45614c] bg-[#15271e]" : "border-[#d1dfd3] bg-white"}`} /></label><button type="button" disabled={action.busy || !flagReason.trim()} onClick={() => { void action.perform(async () => { await writeApi(`/api/claims/${selected.id}/flags`, "POST", { reason: flagReason.trim() }); setFlagReason(""); }, "Citation flagged. Sign-off is blocked until the claim is reviewed."); }} className={`${secondary(night)} mt-3 disabled:cursor-not-allowed disabled:opacity-50`}>Flag citation</button><ActionFeedback error={action.error} message={action.message} /></div>}
       </section>
       <section className={card(night)} aria-labelledby="source-viewer"><h2 id="source-viewer" className="text-lg font-semibold">Original source</h2>
         <div className="mt-4 flex flex-wrap gap-2">{data.documents.map(item => <button key={item.id} type="button" onClick={() => setDocumentId(item.id)} className={`rounded-full border px-3 py-1.5 text-xs ${activeDocumentId === item.id ? "border-[#6a9b76] bg-[#3d7855]/15 font-semibold" : night ? "border-[#3c5746]" : "border-[#d7e1d7]"}`}>{item.title}</button>)}</div>
@@ -77,37 +101,109 @@ export function EvidencePanel({ data, night, base }: Props) {
   </>;
 }
 
-export function IssuesPanel({ data, night, base }: Props) {
+export function IssuesPanel(props: Props) {
+  const { data, night, base } = props;
   const { issues, detail } = data;
   return <>
     <PageHeading eyebrow="Resolution evidence" title="Resolve blocking issues" description="A source document or date verification is required before an issue can close." night={night} />
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.5fr)_minmax(290px,0.8fr)]">
-      <div className="space-y-5">{issues.map(issue => <section key={issue.id} className={card(night)}><div className="flex flex-wrap items-start justify-between gap-3"><h2 className="text-lg font-semibold">{issue.type === "missing_document" ? `Missing ${formatDate(issue.requiredServiceDate)} progress note` : "Requested versus authorized dates"}</h2><span className={`rounded-full px-3 py-1 text-xs font-bold ${issue.status === "resolved" ? "bg-[#3f8b55]/15 text-[#5fa46b]" : "bg-[#ba8735]/15 text-[#a67630]"}`}>{issue.status === "resolved" ? "Resolved" : "Blocks sign-off"}</span></div><p className={`mt-3 text-sm ${muted(night)}`}>{issue.description}</p>{issue.type === "date_conflict" && <div className={`mt-5 grid gap-3 rounded-xl p-4 text-sm sm:grid-cols-2 ${night ? "bg-[#13251d]" : "bg-[#f4f7f3]"}`}><div><span className={muted(night)}>Authorized</span><p className="mt-1 font-semibold">{formatDate(detail.authorization?.approvedStart ?? null)} – {formatDate(detail.authorization?.approvedEnd ?? null)}</p></div><div><span className={muted(night)}>Requested</span><p className="mt-1 font-semibold">{formatDate(detail.reviewPeriod?.requestedStart ?? null)} – {formatDate(detail.reviewPeriod?.requestedEnd ?? null)}</p></div></div>}{issue.status === "resolved" && <p className={`mt-4 text-sm ${muted(night)}`}>Resolution: {issue.resolutionReason}</p>}</section>)}</div>
+      <div className="space-y-5">{issues.map(issue => <section key={issue.id} className={card(night)}>
+        <div className="flex flex-wrap items-start justify-between gap-3"><h2 className="text-lg font-semibold">{issue.type === "missing_document" ? `Missing ${formatDate(issue.requiredServiceDate)} progress note` : "Requested versus authorized dates"}</h2><span className={`rounded-full px-3 py-1 text-xs font-bold ${issue.status === "resolved" ? "bg-[#3f8b55]/15 text-[#5fa46b]" : "bg-[#ba8735]/15 text-[#a67630]"}`}>{issue.status === "resolved" ? "Resolved" : "Blocks sign-off"}</span></div>
+        <p className={`mt-3 text-sm ${muted(night)}`}>{issue.description}</p>
+        {issue.type === "date_conflict" && <div className={`mt-5 grid gap-3 rounded-xl p-4 text-sm sm:grid-cols-2 ${night ? "bg-[#13251d]" : "bg-[#f4f7f3]"}`}><div><span className={muted(night)}>Authorized</span><p className="mt-1 font-semibold">{formatDate(detail.authorization?.approvedStart ?? null)} – {formatDate(detail.authorization?.approvedEnd ?? null)}</p></div><div><span className={muted(night)}>Requested</span><p className="mt-1 font-semibold">{formatDate(detail.reviewPeriod?.requestedStart ?? null)} – {formatDate(detail.reviewPeriod?.requestedEnd ?? null)}</p></div></div>}
+        {issue.status === "resolved" ? <p className={`mt-4 text-sm ${muted(night)}`}>Resolution: {issue.resolutionReason}</p> : issue.type === "missing_document" ? <MissingNoteResolution {...props} issueId={issue.id} /> : <DateResolution {...props} issueId={issue.id} />}
+      </section>)}</div>
       <aside className={card(night)}><h2 className="text-lg font-semibold">Resolution requirements</h2><ul className={`mt-5 list-disc space-y-3 pl-5 text-sm leading-6 ${muted(night)}`}><li>The missing note must be attached as an original source and verified.</li><li>Both date ranges remain visible; the clinician records the reason for the difference.</li><li>After changes, the packet is rebuilt and checked again.</li><li>A checkbox alone cannot close either issue.</li></ul><Link href={`${base}/recheck`} className={`${secondary(night)} mt-6`}>View recheck →</Link></aside>
     </div>
   </>;
 }
 
-export function RecheckPanel({ data, night, base }: Props) {
+const NOTE_HASH = "56a21a599f1177139c4182087a60e837ddc0ad7f5118f72830c0d8e536b32ece";
+
+function MissingNoteResolution({ data, night, caseId, onChange, issueId }: Props & { issueId: string }) {
+  const [content, setContent] = useState<string | null>(null);
+  const [fileName, setFileName] = useState("");
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [reason, setReason] = useState("Original synthetic November 2 progress note attached and verified.");
+  const action = useAction(onChange);
+  const existing = data.documents.find(item => item.type === "progress_note" && item.serviceDate === "2026-11-02" && item.verificationState !== "rejected");
+
+  async function selectFile(file: File | undefined) {
+    setContent(null); setFileError(null); setFileName(file?.name ?? "");
+    if (!file) return;
+    if (file.size > 30000) { setFileError("The document is too large for this demo."); return; }
+    const raw = await file.text();
+    const frontMatter = raw.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/);
+    if (!frontMatter) { setFileError("Select the synthetic November 2 Markdown fixture."); return; }
+    const body = raw.slice(frontMatter[0].length).trim();
+    const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body)))).map(byte => byte.toString(16).padStart(2, "0")).join("");
+    if (hash !== NOTE_HASH) { setFileError("This is not the allowlisted synthetic November 2 note. No content was uploaded."); return; }
+    setContent(body);
+  }
+
+  async function attachAndResolve() {
+    await action.perform(async () => {
+      let documentId = existing?.id;
+      if (!documentId) {
+        if (!content) throw new Error("missing_note_content");
+        const uploaded = await writeApi<{ id: string }>(`/api/cases/${encodeURIComponent(caseId)}/documents`, "POST", {
+          type: "progress_note", title: "Psychiatry progress note, hospital day 2",
+          author: "Dr. Lena Ortiz, MD (fictional)", serviceDate: "2026-11-02", content,
+        });
+        documentId = uploaded.id;
+      }
+      if (!existing || existing.verificationState === "unverified") await writeApi(`/api/documents/${documentId}/verify`, "POST", { decision: "verified" });
+      await writeApi(`/api/issues/${issueId}/resolve`, "POST", { resolution: "attach_document", reason: reason.trim(), evidenceDocumentId: documentId });
+    }, "The verified note is attached and the missing-note issue is resolved. Recheck the packet.");
+  }
+
+  return <div className="mt-6 border-t border-current/10 pt-5">
+    <h3 className="font-semibold">Attach original synthetic note</h3>
+    {existing ? <p className={`mt-2 text-sm ${muted(night)}`}>Nov 2 note already attached · {existing.verificationState}. Resolve it with this source.</p> : <><p className={`mt-2 text-sm ${muted(night)}`}>Select <code>fixtures/ur-1042/late-arrival/note-2026-11-02.md</code> from this project. Only that allowlisted synthetic content can be submitted.</p><input aria-label="Select synthetic November 2 note" type="file" accept=".md,text/markdown,text/plain" onChange={event => { void selectFile(event.target.files?.[0]); }} className="mt-4 block w-full text-sm" />{fileName && <p className={`mt-2 text-xs ${muted(night)}`}>Selected: {fileName}</p>}{content && <details className="mt-4"><summary className="cursor-pointer text-sm font-semibold">Preview original note</summary><pre className={`mt-3 max-h-60 overflow-auto whitespace-pre-wrap rounded-lg p-3 text-xs ${night ? "bg-[#13251d]" : "bg-[#f4f7f3]"}`}>{content}</pre></details>}</>}
+    {fileError && <p role="alert" className="mt-3 text-sm text-[#bc6552]">{fileError}</p>}
+    <label className="mt-4 block text-sm">Resolution reason<input value={reason} onChange={event => setReason(event.target.value)} maxLength={2000} className={`mt-2 w-full rounded-lg border px-3 py-2 outline-none focus:border-[#649b72] ${night ? "border-[#45614c] bg-[#15271e]" : "border-[#d1dfd3] bg-white"}`} /></label>
+    <button type="button" disabled={action.busy || !reason.trim() || (!existing && !content)} onClick={() => { void attachAndResolve(); }} className={`${primary} mt-4 disabled:cursor-not-allowed disabled:opacity-50`}>{action.busy ? "Saving…" : "Attach, verify and resolve"}</button>
+    <ActionFeedback error={action.error} message={action.message} />
+  </div>;
+}
+
+function DateResolution({ data, night, onChange, issueId }: Props & { issueId: string }) {
+  const [reason, setReason] = useState("");
+  const action = useAction(onChange);
+  const period = data.detail.reviewPeriod;
+  return <div className="mt-6 border-t border-current/10 pt-5">
+    <h3 className="font-semibold">Clinician date verification</h3>
+    <p className={`mt-2 text-sm ${muted(night)}`}>Confirm the requested Nov 4–6 period against the original request and explain why it extends beyond the Nov 1–3 authorization. Neither source is changed.</p>
+    <label className="mt-4 block text-sm">Reason for the difference<textarea value={reason} onChange={event => setReason(event.target.value)} rows={3} maxLength={2000} placeholder="Record your source-backed verification reason" className={`mt-2 w-full rounded-lg border p-3 outline-none focus:border-[#649b72] ${night ? "border-[#45614c] bg-[#15271e]" : "border-[#d1dfd3] bg-white"}`} /></label>
+    <button type="button" disabled={action.busy || !reason.trim() || !period?.sourceDocumentId} onClick={() => { void action.perform(async () => { if (!period?.sourceDocumentId) return; await writeApi(`/api/issues/${issueId}/resolve`, "POST", { resolution: "verify_period", reason: reason.trim(), evidenceDocumentId: period.sourceDocumentId, verifiedPeriod: { start: period.requestedStart, end: period.requestedEnd } }); }, "Dates verified with the original request. Recheck the packet before sign-off."); }} className={`${primary} mt-4 disabled:cursor-not-allowed disabled:opacity-50`}>Record verification</button>
+    <ActionFeedback error={action.error} message={action.message} />
+  </div>;
+}
+
+export function RecheckPanel({ data, night, base, caseId, onChange }: Props) {
   const { run, validation } = data;
+  const action = useAction(onChange);
   const names: Record<string, string> = { clinical_documentation: "Clinical Documentation", case_assembly_drafting: "Case Assembly and Drafting", independent_quality: "Independent Quality" };
   return <>
     <PageHeading eyebrow="Three-agent review" title="Packet recheck" description="See each agent result and the code checks tied to the current packet." night={night} />
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(290px,0.85fr)]">
-      <section className={card(night)}><h2 className="text-lg font-semibold">{run ? `Latest run · ${statusLabel(run.status)}` : "No review run yet"}</h2><p className={`mt-2 text-sm ${muted(night)}`}>{run?.startedAt ? `Started ${formatDate(run.startedAt, true)}` : "A run will prepare the first versioned packet."}</p><div className="mt-6 space-y-3">{run?.agents.map(agent => <div key={agent.agent} className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${night ? "border-[#355340]" : "border-[#e1e9e1]"}`}><span className="font-semibold">{names[agent.agent] ?? agent.agent}</span><span className={agent.status === "succeeded" ? "text-[#5b9c65]" : agent.status === "failed" || agent.status === "timed_out" ? "text-[#bd6b54]" : muted(night)}>{statusLabel(agent.status)}</span>{agent.message && <p className={`w-full text-xs ${muted(night)}`}>{agent.message}</p>}</div>)}{!run && <p className={muted(night)}>The app preserves each result and shows failed or timed-out agents by name.</p>}</div><Link href={`${base}/approval`} className={`${primary} mt-6`}>Review sign-off gate →</Link></section>
+      <section className={card(night)}><h2 className="text-lg font-semibold">{run ? `Latest run · ${statusLabel(run.status)}` : "No review run yet"}</h2><p className={`mt-2 text-sm ${muted(night)}`}>{run?.startedAt ? `Started ${formatDate(run.startedAt, true)}` : "A run will prepare the first versioned packet."}</p><div className="mt-6 space-y-3">{run?.agents.map(agent => <div key={agent.agent} className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${night ? "border-[#355340]" : "border-[#e1e9e1]"}`}><span className="font-semibold">{names[agent.agent] ?? agent.agent}</span><span className={agent.status === "succeeded" ? "text-[#5b9c65]" : agent.status === "failed" || agent.status === "timed_out" ? "text-[#bd6b54]" : muted(night)}>{statusLabel(agent.status)}</span>{agent.message && <p className={`w-full text-xs ${muted(night)}`}>{agent.message}</p>}</div>)}{!run && <p className={muted(night)}>The app preserves each result and shows failed or timed-out agents by name.</p>}</div><div className="mt-6 flex flex-wrap gap-3"><button type="button" disabled={action.busy || run?.status === "running"} onClick={() => { void action.perform(async () => { await writeApi(`/api/cases/${encodeURIComponent(caseId)}/runs`, "POST", {}); }, "Review run started. Status will update as each agent finishes."); }} className={`${primary} disabled:cursor-not-allowed disabled:opacity-50`}>{run?.status === "running" ? "Run in progress…" : run ? "Run review again" : "Start review run"}</button><Link href={`${base}/approval`} className={secondary(night)}>Review sign-off gate →</Link></div><ActionFeedback error={action.error} message={action.message} /></section>
       <section className={card(night)}><h2 className="text-lg font-semibold">Deterministic validation</h2><ul className="mt-5 space-y-3 text-sm">{validation.report.checks.map((check, index) => <li key={`${check.name}-${index}`} className="flex items-start justify-between gap-3"><span>{check.name.replaceAll("_", " ")}</span><span className={check.result === "pass" ? "text-[#5b9c65]" : check.result === "fail" ? "text-[#bd6b54]" : muted(night)}>{statusLabel(check.result)}</span></li>)}</ul><p className={`mt-5 text-sm ${muted(night)}`}>{validation.blockers.length} current blocker{validation.blockers.length === 1 ? "" : "s"}. An incomplete run always blocks sign-off.</p></section>
     </div>
   </>;
 }
 
-export function ApprovalPanel({ data, night, base }: Props) {
+export function ApprovalPanel({ data, night, base, caseId, onChange }: Props) {
   const { detail, claims, validation } = data;
+  const [acknowledged, setAcknowledged] = useState(false);
+  const action = useAction(onChange);
   const ready = validation.packetVersionId !== null && validation.contentHash !== null && validation.blockers.length === 0;
+  const signed = detail.case.status === "approved_for_submission";
   return <>
     <PageHeading eyebrow="Human approval gate" title={detail.case.status === "approved_for_submission" ? "Packet signed off" : ready ? "Ready for sign-off" : "Sign-off blocked"} description="Review the exact packet version and its validation result before confirming." night={night} />
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.85fr)]">
       <section className={card(night)}><div className="flex flex-wrap items-center justify-between gap-2 border-b border-current/10 pb-4"><h2 className="text-lg font-semibold">Packet {detail.latestPacketVersion ? `v${detail.latestPacketVersion.version}` : "pending"} · Read-only preview</h2><span className={`text-xs ${muted(night)}`}>Exact version only</span></div><div className="mt-5 space-y-3 text-sm"><p>Requested: {formatDate(detail.reviewPeriod?.requestedStart ?? null)} – {formatDate(detail.reviewPeriod?.requestedEnd ?? null)}</p><p>Authorized: {formatDate(detail.authorization?.approvedStart ?? null)} – {formatDate(detail.authorization?.approvedEnd ?? null)}</p></div><div className="mt-5 space-y-3">{claims.filter(claim => claim.status !== "rejected").map(claim => <p key={claim.id} className={`rounded-lg p-3 text-sm leading-6 ${night ? "bg-[#13251d]" : "bg-[#f5f8f4]"}`}>{claim.text}</p>)}</div><p className={`mt-5 break-all text-xs ${muted(night)}`}>Packet hash: {validation.contentHash ?? "Not available"}</p><Link href={`${base}/evidence`} className={`${secondary(night)} mt-5`}>Review evidence →</Link></section>
-      <section className={card(night)}><h2 className="text-lg font-semibold">Validation result</h2><p className={`mt-3 text-sm font-semibold ${ready ? "text-[#5a9c66]" : "text-[#aa7435]"}`}>{ready ? "All checks clear" : `${validation.blockers.length} blocker${validation.blockers.length === 1 ? "" : "s"} remain`}</p><ul className="mt-5 space-y-3 text-sm">{validation.blockers.map((blocker, index) => <li key={`${blocker.code}-${blocker.objectId ?? index}`} className={`rounded-lg p-3 ${night ? "bg-[#4a3928]" : "bg-[#fbf2e5]"}`}>{blocker.message}{blocker.objectId ? <span className={`mt-1 block text-xs ${muted(night)}`}>{blocker.objectId}</span> : null}</li>)}</ul>{!ready && <Link href={`${base}/issues`} className={`${secondary(night)} mt-6`}>Resolve blockers →</Link>}{ready && <p className={`mt-6 text-sm ${muted(night)}`}>The clinician can sign off this exact version after acknowledging the review.</p>}</section>
+      <section className={card(night)}><h2 className="text-lg font-semibold">Validation result</h2><p className={`mt-3 text-sm font-semibold ${ready ? "text-[#5a9c66]" : "text-[#aa7435]"}`}>{ready ? "All checks clear" : `${validation.blockers.length} blocker${validation.blockers.length === 1 ? "" : "s"} remain`}</p><ul className="mt-5 space-y-3 text-sm">{validation.blockers.map((blocker, index) => <li key={`${blocker.code}-${blocker.objectId ?? index}`} className={`rounded-lg p-3 ${night ? "bg-[#4a3928]" : "bg-[#fbf2e5]"}`}>{blocker.message}{blocker.objectId ? <span className={`mt-1 block text-xs ${muted(night)}`}>{blocker.objectId}</span> : null}</li>)}</ul>{!ready && <Link href={`${base}/issues`} className={`${secondary(night)} mt-6`}>Resolve blockers →</Link>}{ready && !signed && <><label className="mt-6 flex items-start gap-3 text-sm"><input type="checkbox" checked={acknowledged} onChange={event => setAcknowledged(event.target.checked)} className="mt-1 size-4 accent-[#255e4b]" /><span>I reviewed the clinical statements and their sources in this exact packet version.</span></label><button type="button" disabled={!acknowledged || action.busy} onClick={() => { void action.perform(async () => { await writeApi(`/api/cases/${encodeURIComponent(caseId)}/approve`, "POST", { packetVersionId: validation.packetVersionId, contentHash: validation.contentHash, acknowledgement: "I reviewed the clinical statements and their sources in this exact packet version." }); setAcknowledged(false); }, "The exact packet version was signed off. Nothing was sent to a payer."); }} className={`${primary} mt-5 w-full disabled:cursor-not-allowed disabled:opacity-50`}>{action.busy ? "Signing off…" : `Sign off packet v${detail.latestPacketVersion?.version ?? "?"}`}</button></>}{signed && <p className="mt-6 rounded-lg bg-[#4c9a60]/15 p-4 text-sm font-semibold text-[#60a96f]">This packet version is signed off. No payer submission occurred.</p>}<ActionFeedback error={action.error} message={action.message} /></section>
     </div>
   </>;
 }
