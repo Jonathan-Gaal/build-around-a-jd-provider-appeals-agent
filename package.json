@@ -13,7 +13,8 @@
     "db:push": "npm run db:migrate",
     "db:seed": "tsx --conditions=react-server scripts/db-seed.ts",
     "test:integration": "tsx --conditions=react-server scripts/backend-integration.ts",
-    "eval": "tsx --conditions=react-server scripts/eval.ts"
+    "eval": "tsx --conditions=react-server scripts/eval.ts",
+    "demo:walkthrough": "bash scripts/demo-local.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",

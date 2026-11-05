@@ -27,7 +27,11 @@ Neon project `ur-appeals`, Free plan, AWS US East, provisioned through the Verce
 
 `AGENT_REPLAY=1` requires actual recordings matching the agent version, model and prompt. A missing recording fails visibly; the repo does not contain fabricated recordings. `AGENT_RECORD=1` records successful live responses. Production replay requires `REPLAY_PRODUCTION_LABELED=1`. `DEMO_NOW=2026-11-03T09:00:00-05:00` freezes business time only; audit, throttling and expiry use real time.
 
-Model identifiers and prices retain the agreed configuration. They must be verified against the provider before live execution. No live model calls were made during this build.
+Live runs on Haiku 5.5 have been made under the spend stop. Replay recordings live in `.agent-replay/`, which is gitignored, so a fresh clone or a hosted deployment has none until they are copied or re-recorded.
+
+## Terminal walkthrough
+
+`npm run demo:walkthrough` shows the UR-1042 flow without a frontend: sign-in, three-agent review, late note, issue resolution and approval. It creates a temporary `_test` database, starts a production build in replay mode with a generated password and no API key or ledger, then deletes the database. It spends nothing and never touches `ur_appeals_app`. It needs port 3000 free, a Neon CLI login and local recordings.
 
 ## API
 
@@ -64,6 +68,17 @@ There is no submission route. Denials, appeal matching, letter parsing, extra ro
 The integration suite covers the full missing-note/date-conflict/approval flow, duplicate execution, concurrent approval, no false invalidation, immutable history, foreign-case route denial, failed/skipped runs, stale-run sweep and late workers, database grants/audit protection, CHECK invariants, same-case foreign keys, login throttling and spend settlement/expiry. Hosted Neon concurrency and live-model output quality still need environment-specific verification.
 
 A stuck run recovers through normal polling: `GET /api/runs/:id`, `GET /api/cases/:id` and `GET /api/cases/:id/validation` mark a run with a heartbeat over 10 minutes old as `failed`, and its open agents as `timed_out` with `errorKind: "stale"`. Approval and run start do the same. Approval stays blocked until a new run completes.
+
+## Frontend notes
+
+- Claim text and other stored strings can contain markup. The API returns them as plain JSON strings, so render them as text and never with `dangerouslySetInnerHTML`.
+- Verifying a clinical document starts a rerun itself. A second `POST /runs` returns 409 `active_run` with `activeRunGroupId`; poll that run.
+- `next.config.ts` sends a Content-Security-Policy. Loading a script, font or API from another origin requires changing it.
+
+## Known security limits
+
+- Sessions are JWTs with an 8-hour life. Sign-out clears the browser cookie, but a copied token keeps working until it expires.
+- Off Vercel, login throttling uses one shared IP bucket, and five wrong attempts lock an account for 15 minutes.
 
 ## Contract notes for review
 
