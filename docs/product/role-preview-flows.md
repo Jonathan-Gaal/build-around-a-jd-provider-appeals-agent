@@ -20,3 +20,19 @@ The backend, authentication, agents, API, migrations and clinical approval logic
 ## Manager
 
 Manager preview: `/roles/manager` shows the synthetic team queue, deadline, current handoff stage, reassignment controls and escalation routing. Assignment and routing events are shared with the other preview screens through browser storage. Neither action clears source gaps, date issues or clinical approval requirements.
+
+## Submission staff
+
+`/roles/submission` offers three explicitly illustrative snapshots: awaiting sign-off, approved example, and changed packet. Selecting a snapshot never creates a clinical signature. Preparation checks both version and fingerprint. Only the exact approved example can be prepared and receive a local fictional handoff reference. Changing scenarios clears the prepared version; an earlier receipt is retained as a previous, non-current record.
+
+Destinations are offline preview labels. Receipt references must begin with `DEMO-`. No documents are exported, no external channel is contacted, and no payer receipt is claimed. The existing clinician sign-off screen remains a distinct link to the actual case.
+
+## Branch review order
+
+These branches are stacked on the existing frontend work: `codex/ur-role-map` → `codex/ur-coordinator-flow` → `codex/ur-manager-flow` → `codex/ur-submission-flow`. The final branch contains all role previews. Each commit describes its scope. Nothing is merged into development automatically.
+
+## Verification and replay
+
+The shared Start a fresh role walkthrough control resets only the browser-local preview after an explicit in-app confirmation. It leaves the live case untouched. The browser walkthrough verified missing-source handoff blocking, request and source attachment, clinician handoff, reload persistence, manager reassignment and reasoned routing, pending submission blocking, exact-version preparation and demo receipt, changed-packet blocking, preservation of the old receipt, and reset persistence. All four role screens fit at 375px without horizontal overflow; the submission preview also fits at 320px. Desktop cards were visually checked at 1280px and viewport overrides were reset.
+
+The automated suite contains 312 passing tests, including source-fixture consistency, coordinator handoff gates, manager scope preservation, exact-version/fingerprint checks and receipt invalidation for the preview. The TypeScript, lint and production-build checks cover the complete frontend.
