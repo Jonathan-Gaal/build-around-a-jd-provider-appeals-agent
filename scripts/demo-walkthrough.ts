@@ -30,7 +30,8 @@ async function signIn() {
     headers: {Origin: BASE, Cookie: cookies(), "Content-Type": "application/x-www-form-urlencoded"},
   });
   remember(response);
-  if (!jar.has("authjs.session-token")) throw new Error("Sign-in failed. Check DEMO_CREDENTIAL_CLINICIAN_A matches the server.");
+  // Over HTTPS the cookie is "__Secure-authjs.session-token".
+  if (![...jar.keys()].some((name) => name.endsWith("authjs.session-token"))) throw new Error("Sign-in failed. Check DEMO_CREDENTIAL_CLINICIAN_A matches the server.");
 }
 
 async function api(method: string, path: string, body?: unknown) {
