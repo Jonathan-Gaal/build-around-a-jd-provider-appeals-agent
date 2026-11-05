@@ -25,15 +25,21 @@ import {transition} from "../cases/transition";
 class IdenticalPacket extends Error {}
 class ExecutionAlreadyClaimed extends Error {}
 const agents=["clinical_documentation","case_assembly_drafting","independent_quality"] as const;
+const staleRun=(caseId:string)=>and(eq(s.runGroups.caseId,caseId),eq(s.runGroups.status,"running"),lt(s.runGroups.heartbeatAt,new Date(Date.now()-LIMITS.STALE_RUN_MINUTES*60000)));
+// The caller holds the case lock.
 export async function sweepStaleRuns(db:Db,caseId:string){
- const cutoff=new Date(Date.now()-LIMITS.STALE_RUN_MINUTES*60000);
- const stale=await db.update(s.runGroups).set({status:"failed",finishedAt:new Date()}).where(and(eq(s.runGroups.caseId,caseId),eq(s.runGroups.status,"running"),lt(s.runGroups.heartbeatAt,cutoff))).returning();
+ const stale=await db.update(s.runGroups).set({status:"failed",finishedAt:new Date()}).where(staleRun(caseId)).returning();
  for(const group of stale){
-  await db.update(s.agentRuns).set({status:"failed",errorKind:"stale",error:"Run stopped before completing.",finishedAt:new Date()}).where(and(eq(s.agentRuns.runGroupId,group.id),inArray(s.agentRuns.status,["running","queued"])));
+  await db.update(s.agentRuns).set({status:"timed_out",errorKind:"stale",error:"Run stopped before completing.",finishedAt:new Date()}).where(and(eq(s.agentRuns.runGroupId,group.id),inArray(s.agentRuns.status,["running","queued"])));
   await recheckApproval(db,caseId);
   await transition(db,caseId,"needs_review","system","stale_run");
   await writeAudit(db,{actor:"orchestrator",actorType:"system",caseId,action:"run_stale",objectType:"run_group",objectId:group.id,outcome:"failed",reasonCode:"stale_run"});
  }
+}
+// Polling stays lock-free until a group is actually stale.
+export async function sweepStaleRunsOnRead(db:Database,caseId:string){
+ const [stale]=await db.select({id:s.runGroups.id}).from(s.runGroups).where(staleRun(caseId)).limit(1);
+ if(stale)await withCaseLock(db,caseId,tx=>sweepStaleRuns(tx,caseId));
 }
 export async function startGroup(db:Db,caseId:string,userId:string,env:Env=getEnv()){
  await sweepStaleRuns(db,caseId);
@@ -60,6 +66,10 @@ export async function executeGroup(db:Database,groupId:string,options:ExecutionO
  if(!group||group.status!=="running")return;
  const caseId=group.caseId,env=options.env??getEnv();
  let failure=false;
+ const requireRunning=async(tx:Db)=>{
+  const [current]=await tx.select({status:s.runGroups.status}).from(s.runGroups).where(eq(s.runGroups.id,groupId));
+  if(current?.status!=="running")throw new Error("stale_run");
+ };
  try{
   const [caseRow]=await db.select().from(s.cases).where(eq(s.cases.id,caseId));
   const [period]=await db.select().from(s.reviewPeriods).where(eq(s.reviewPeriods.caseId,caseId)).orderBy(desc(s.reviewPeriods.version)).limit(1);
@@ -72,8 +82,7 @@ export async function executeGroup(db:Database,groupId:string,options:ExecutionO
   const recordIds=new Map(records.map(row=>[row.agent,row.id]));
   const updateRecord=async(agent:string,record:AgentRunRecord)=>{
    await withCaseLock(db,caseId,async tx=>{
-    const [current]=await tx.select().from(s.runGroups).where(eq(s.runGroups.id,groupId));
-    if(current.status!=="running")throw new Error("stale_run");
+    await requireRunning(tx);
     await tx.update(s.agentRuns).set({agentVersion:record.version,model:record.model,inputHash:record.inputHash,inputDocumentIds:documents.map(doc=>doc.id),output:record.output,quoteChecks:record.quoteChecks,status:record.status==="ok"?"succeeded":record.status==="needs_review"?"needs_review":record.errorKind==="timeout"?"timed_out":"failed",error:record.error??null,errorKind:record.errorKind??null,attempts:record.attempts,inputTokens:record.usage?.input_tokens,outputTokens:record.usage?.output_tokens,costUsd:record.costUsd.toFixed(6),startedAt:new Date(record.startedAt),finishedAt:new Date()}).where(eq(s.agentRuns.id,recordIds.get(agent)!));
     await tx.update(s.runGroups).set({callsUsed:sql`${s.runGroups.callsUsed}+${record.attempts}`,tokensUsed:sql`${s.runGroups.tokensUsed}+${(record.usage?.input_tokens??0)+(record.usage?.output_tokens??0)}`,costUsd:sql`${s.runGroups.costUsd}+${record.costUsd.toFixed(6)}`,heartbeatAt:new Date()}).where(eq(s.runGroups.id,groupId));
    });
@@ -81,8 +90,7 @@ export async function executeGroup(db:Database,groupId:string,options:ExecutionO
   const opts=(agent:string):RunAgentOptions=>({...options,env,spend:options.spend??{ledger:getSpendLedger(),environment:deploymentOf(env),agentRunRef:recordIds.get(agent)!},recordRun:record=>updateRecord(agent,record)});
   const clinicalInput={caseId,levelOfCare:caseRow.levelOfCare,reviewPeriod:{start:auth.approvedStart,end:auth.approvedEnd},asOf:businessDate(group.asOf),documents};
   const beginAgent=async(agent:string)=>withCaseLock(db,caseId,async tx=>{
-   const [current]=await tx.select().from(s.runGroups).where(eq(s.runGroups.id,groupId));
-   if(!current||current.status!=="running")throw new Error("stale_run");
+   await requireRunning(tx);
    const claimed=await tx.update(s.agentRuns).set({status:"running",startedAt:new Date()}).where(and(eq(s.agentRuns.id,recordIds.get(agent)!),eq(s.agentRuns.status,"queued"))).returning({id:s.agentRuns.id});
    if(!claimed.length)throw new ExecutionAlreadyClaimed();
    await tx.update(s.runGroups).set({heartbeatAt:new Date()}).where(eq(s.runGroups.id,groupId));
@@ -92,7 +100,7 @@ export async function executeGroup(db:Database,groupId:string,options:ExecutionO
   if(!clinical.output)throw new Error(clinical.errorKind??"agent_failed");
   const duplicateIds=findDuplicateIds(clinical.output.facts);
   if(duplicateIds.length){
-   await db.update(s.agentRuns).set({status:"failed",errorKind:"schema",error:"The model output did not match the required format."}).where(eq(s.agentRuns.id,recordIds.get(agents[0])!));
+   await withCaseLock(db,caseId,async tx=>{await requireRunning(tx);await tx.update(s.agentRuns).set({status:"failed",errorKind:"schema",error:"The model output did not match the required format."}).where(eq(s.agentRuns.id,recordIds.get(agents[0])!));});
    throw new Error("duplicate_fact_ids");
   }
   const verifiedFacts=new Set(clinical.output.facts.filter(fact=>!duplicateIds.includes(fact.id)&&fact.quotes.length>0&&verifyQuotes(fact.quotes,documents).every(q=>q.status==="verified")).map(fact=>fact.id));

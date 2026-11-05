@@ -13,7 +13,7 @@ import {editSchema,flagSchema,editClaim} from "../cases/claims";
 import {resolveSchema,resolveIssue} from "../cases/issues";
 import {loadValidation} from "../validation/snapshot";
 import {approve} from "../cases/approval";
-import {startGroup} from "../orchestrator/run";
+import {startGroup,sweepStaleRuns,sweepStaleRunsOnRead} from "../orchestrator/run";
 import {LIMITS} from "../config/limits";
 import {writeAudit} from "../audit/write";
 const approveSchema=z.object({packetVersionId:z.uuid(),contentHash:z.string().regex(/^[a-f0-9]{64}$/),acknowledgement:z.string().trim().min(1).max(LIMITS.FREE_TEXT_MAX_CHARS)}).strict();
@@ -23,6 +23,7 @@ export async function handleApi(request:Request,path:string[],deps:ApiDependenci
  let definition:RouteDefinition|undefined;
  const caseResource={kind:"case" as const,id};
  const caseRead=(handler:RouteDefinition["handler"]):RouteDefinition=>({action:"read_case",resource:caseResource,handler});
+ const swept=(handler:RouteDefinition["handler"]):RouteDefinition["handler"]=>async context=>{await sweepStaleRunsOnRead(deps.db,context.caseId!);return handler(context);};
  if(kind==="cases"&&path.length===1&&method==="GET")definition={action:"list_cases",handler:async({db,user})=>{
   const status=new URL(request.url).searchParams.get("status");
   if(status&&!s.caseStatusEnum.enumValues.includes(status as typeof s.caseStatusEnum.enumValues[number]))throw new HttpError(400,"invalid_status");
@@ -30,14 +31,14 @@ export async function handleApi(request:Request,path:string[],deps:ApiDependenci
   const issueRows=rows.length?await db.select().from(s.issues).where(and(inArray(s.issues.caseId,rows.map(row=>row.id)),eq(s.issues.status,"open"))):[];
   return rows.map(row=>({id:row.id,patientLabel:row.patientLabel,type:row.type,levelOfCare:row.levelOfCare,dueAt:row.dueAt,status:row.status,issueCount:issueRows.filter(issue=>issue.caseId===row.id).length,blockingIssueCount:issueRows.filter(issue=>issue.caseId===row.id&&issue.blocking).length,lastUpdatedAt:row.updatedAt,overdue:row.dueAt!==null&&row.dueAt<businessNow(deps.env??getEnv()),synthetic:true}));
  }};
- if(kind==="cases"&&id&&path.length===2&&method==="GET")definition=caseRead(async({db,caseId})=>{
+ if(kind==="cases"&&id&&path.length===2&&method==="GET")definition=caseRead(swept(async({db,caseId})=>{
   const [row]=await db.select().from(s.cases).where(eq(s.cases.id,caseId!));
   const [reviewPeriod]=await db.select().from(s.reviewPeriods).where(eq(s.reviewPeriods.caseId,caseId!)).orderBy(desc(s.reviewPeriods.version)).limit(1);
   const [authorization]=await db.select().from(s.authorizations).where(eq(s.authorizations.caseId,caseId!));
   const [latestPacketVersion]=await db.select().from(s.packetVersions).where(eq(s.packetVersions.caseId,caseId!)).orderBy(desc(s.packetVersions.version)).limit(1);
   const [group]=await db.select().from(s.runGroups).where(eq(s.runGroups.caseId,caseId!)).orderBy(desc(s.runGroups.startedAt)).limit(1);
   const env=deps.env??getEnv();return {case:row,reviewPeriod,authorization,latestPacketVersion:latestPacketVersion??null,latestRunGroupId:group?.id??null,demoClock:{enabled:isDemoClock(env),now:businessNow(env),timeZone:"America/New_York"},prototype:true};
- });
+ }));
  if(kind==="cases"&&id&&path.length===3){
   if(operation==="documents"&&method==="GET")definition=caseRead(async({db,caseId})=>db.select({id:s.documents.id,type:s.documents.type,title:s.documents.title,author:s.documents.author,serviceDate:s.documents.serviceDate,version:s.documents.version,verificationState:s.documents.verificationState,receivedAt:s.documents.receivedAt}).from(s.documents).where(eq(s.documents.caseId,caseId!)).orderBy(asc(s.documents.receivedAt)));
   if(operation==="documents"&&method==="POST")definition={action:"upload_document",write:true,upload:true,schema:uploadSchema,resource:caseResource,handler:uploadDocument};
@@ -53,8 +54,8 @@ export async function handleApi(request:Request,path:string[],deps:ApiDependenci
    return rows.map(row=>({...row,displayStatus:approval&&row.status!=="rejected"?"clinician_approved":row.status,evidence:links.filter(link=>link.claimId===row.id).map(link=>link.span)}));
   });
   if(operation==="issues"&&method==="GET")definition=caseRead(async({db,caseId})=>(await db.select().from(s.issues).where(eq(s.issues.caseId,caseId!))).map(issue=>({...issue,allowedResolutions:issue.type==="missing_document"?["attach_document"]:["verify_period"]})));
-  if(operation==="validation"&&method==="GET")definition=caseRead(async({db,caseId})=>{const value=await loadValidation(db,caseId!);return {packetVersionId:value.packet?.id??null,contentHash:value.hash,report:value.report,blockers:value.blockers};});
-  if(operation==="approve"&&method==="POST")definition={action:"approve",write:true,schema:approveSchema,resource:caseResource,handler:({db,user,caseId,body})=>approve(db,caseId!,user,approveSchema.parse(body))};
+  if(operation==="validation"&&method==="GET")definition=caseRead(swept(async({db,caseId})=>{const value=await loadValidation(db,caseId!);return {packetVersionId:value.packet?.id??null,contentHash:value.hash,report:value.report,blockers:value.blockers};}));
+  if(operation==="approve"&&method==="POST")definition={action:"approve",write:true,schema:approveSchema,resource:caseResource,handler:async({db,user,caseId,body})=>{await sweepStaleRuns(db,caseId!);return approve(db,caseId!,user,approveSchema.parse(body));}};
  }
  if(kind==="documents"&&id){
   if(path.length===2&&method==="GET")definition={action:"read_case",resource:{kind:"document",id},handler:async({db,caseId})=>{const [row]=await db.select().from(s.documents).where(and(eq(s.documents.id,id),eq(s.documents.caseId,caseId!)));return row;}};
@@ -72,11 +73,11 @@ export async function handleApi(request:Request,path:string[],deps:ApiDependenci
   if(path.length===3&&operation==="flags"&&method==="POST")definition={action:"edit_claim",write:true,schema:flagSchema,resource:{kind:"claim",id},handler:context=>editClaim(context,id,true)};
  }
  if(kind==="issues"&&id&&path.length===3&&operation==="resolve"&&method==="POST")definition={action:"resolve_issue",write:true,schema:resolveSchema,resource:{kind:"issue",id},handler:context=>resolveIssue(context,id)};
- if(kind==="runs"&&id&&path.length===2&&method==="GET")definition={action:"read_case",resource:{kind:"run",id},handler:async({db})=>{
+ if(kind==="runs"&&id&&path.length===2&&method==="GET")definition={action:"read_case",resource:{kind:"run",id},handler:swept(async({db})=>{
   const [group]=await db.select().from(s.runGroups).where(eq(s.runGroups.id,id));
   const rows=await db.select().from(s.agentRuns).where(eq(s.agentRuns.runGroupId,id)).orderBy(asc(s.agentRuns.createdAt));
   return {...group,costUsd:Number(group.costUsd),agents:rows.map(row=>({agent:row.agent,status:row.status,errorKind:row.errorKind,message:row.error,attempts:row.attempts,costUsd:Number(row.costUsd),startedAt:row.startedAt,finishedAt:row.finishedAt}))};
- }};
+ })};
  if(!definition)return Response.json({error:{code:"not_found"}},{status:404});
  const response=await executeRoute(request,definition,deps);
  if(response.ok&&definition.write){

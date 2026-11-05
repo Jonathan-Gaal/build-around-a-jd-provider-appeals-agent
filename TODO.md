@@ -1,30 +1,40 @@
-# Backend handoff — 2026-11-04
+# Backend handoff — 2026-11-05
 
-Paused at the user's request. Resume from `.worktrees/build`, branch `feature/backend-base`. The root checkout's README is older than the backend work. Setup/API notes: `BACKEND.md`.
+Resume from `.worktrees/build`, branch `feature/backend-base`. The root checkout's README is older than the backend work. Setup/API notes: `BACKEND.md`.
 
 ## Saved and verified
 
-- Backend implementation commit `3425c7d` pushed to shared `upstream/development` and fork `origin/feature/backend-base`.
 - 286 unit tests pass; TypeScript, lint and production build pass (Next.js 15.5.29).
-- Fresh PostgreSQL integration on `ur_backend_final_test` passes: full UR-1042 upload/verify/resolve/rerun/approve flow, concurrent approval, identical rerun, duplicate execution, immutable history, cross-case API access, failed/skipped agents, audit trigger, document grants, spend controls and login throttling.
+- `npm run eval` passes: deterministic fixture checks, fake client, zero live calls. It measures no model quality.
+- Fresh PostgreSQL integration passes after the final changes: full UR-1042 upload/verify/resolve/rerun/approve flow, concurrent approval, identical rerun, duplicate execution, immutable history, cross-case API access, failed/skipped agents, stale sweep, late worker, audit trigger, document grants, CHECK invariants, same-case foreign keys, spend controls and login throttling.
+- The composite same-case constraints apply on a fresh database. All five foreign keys refuse a cross-case write by name, with same-case controls.
+- Stale runs (TRD §2.7) are swept on `GET /api/runs/:id`, `GET /api/cases/:id`, `GET /api/cases/:id/validation`, approval and run start. Open agent runs become `timed_out` with `error_kind = stale`. A late worker cannot undo the sweep and still settles its spend.
+- New tests were shown able to fail: reverting the agent status, the approval sweep, the poll sweep or the late-worker guard, or removing a foreign key, each fails the suite.
+- Auth.js over real HTTP against a production build: sign-in sets an `HttpOnly` session cookie, session and `/api/cases` work, sign-out ends it. Wrong credential, wrong Origin and missing CSRF are refused. Local `http` only, so the `Secure` flag is not exercised.
+- `claude-haiku-5-5` ID and prices ($0.10/$0.50 per million) match the Claude API skill's table, cached 2026-10-06. The API call itself has not been made. The over-100K-token price tier is unreachable under the 100K-character case limit.
 - Fake model clients only. Zero live model calls. Hosted/live quality verification is not complete.
 
-## Remaining work (next session)
+## Remaining work
 
-- [ ] Verify the final `lib/db/security.ts` composite constraints. Two parent `(id, case_id)` unique constraints and five same-case foreign keys were added after the fresh-database run. This last change is coherent but **not yet applied or integration-tested**. Run `db:migrate` against an isolated `_test` database and add direct cross-case FK rejection assertions; rerun the full integration suite on a fresh database.
-- [ ] Include `testInvariantChecks(db)` from `scripts/security-integration.ts` in the main integration runner. Its 28 CHECK constraints were separately tested; new composite FK tests are still needed.
-- [ ] Rerun `npm run eval` after the CLI `.env.local` loader addition. The prior deterministic evaluation passed; the latest attempt was blocked by the sandbox's tsx IPC restriction and needs an escalated rerun. No paid API calls are needed.
-- [ ] Rerun unit tests, TypeScript, lint and production build after final changes. Commit and push any follow-up to shared `development` and the fork feature branch.
-- [ ] Review remaining dependency advisories. The scaffold's critical Next.js advisories were patched; the last install still reported 11 moderate and 2 high advisories, including transitive packages. Inspect production vs development exposure and apply compatible fixes; do not blindly force upgrades.
-- [ ] Verify actual Auth.js HTTP sign-in/session cookies with the running app and configured demo credential. Pure auth tests and actual PostgreSQL login/throttle checks pass; full browser/HTTP cookie roundtrip has not been run.
-- [ ] Verify stale run recovery during polling. `sweepStaleRuns()` runs before a new start; polling currently does not invoke it. Check the desired UI recovery behavior against TRD §2.7.
+- [ ] Push the follow-up commit to shared `development` and the fork feature branch. Upstream pushes are human-gated.
 - [ ] Configure hosted app/runtime roles and shared spend ledger; run concurrency checks against hosted Neon. Local PostgreSQL verification does not prove hosted deployment behavior.
-- [ ] Verify configured provider model identifiers and pricing before live calls. Preserve human decisions/spend limits; never print/read secret files. Once the tested shared ledger is configured, record real replays and run live structural/grounding checks under the authorized $26 ordinary testing stop. The $10 demo reserve needs human unlock.
+- [ ] Once the tested shared ledger is configured, record real replays and run live structural/grounding checks under the authorized $26 ordinary testing stop. The $10 demo reserve needs human unlock. Never print/read secret files. Latest workable date is about Nov 9.
+- [ ] On the first live run, watch for `truncated`. Haiku 5.5 thinks by default and agent `maxTokens` is 6000–8000, so thinking may consume part of that budget.
 - [ ] Frontend handoff to Umer: API routes and JSON shapes in `BACKEND.md`, no frontend screens implemented by this track. No submission path. Denial/appeal/letter features and Should work remain deferred by D8.
+
+## Decisions for the human
+
+- [ ] Remaining production advisories: `next` → bundled `postcss` 8.4.31 (high). The only fix is Next 16, a major upgrade. The advisories concern processing untrusted CSS; this app builds only its own CSS, so the recommendation is to accept until after the Nov 12 demo.
+- [ ] Remaining dev-only advisories: `drizzle-kit` → `esbuild` and `@typescript-eslint` → `minimatch` (moderate). Not shipped to production. `npm audit`'s suggested `drizzle-kit@0.18.1` is a downgrade and should not be applied.
+
+## Observations
+
+- `claim_evidence` links a claim to a span with no database same-case constraint, because `evidence_spans` has no `case_id`. Today spans come only from `verifyQuotes` over the case's own documents, so this is enforced in code only.
+- The stale sweep runs on case read and gate reads but not on the claims, issues and documents list reads. The UI's case and run polling triggers it.
 
 ## Test setup notes
 
-Temporary local Postgres cluster: `/tmp/ur-backend-pg`, user `urtest`, host `127.0.0.1`, port `55432`. Databases `ur_backend_test` and `ur_backend_final_test` contain synthetic test mutations. The full-flow runner requires a fresh database ending `_test`; do not run it against application data or reset an application's spend ledger.
+The temporary local Postgres cluster does not survive a reboot. Recreate it: `initdb -D <dir> -U urtest --auth=trust -E UTF8`, then `pg_ctl -D <dir> -o "-p 55432 -c listen_addresses=127.0.0.1" -w start`. The full-flow runner requires a fresh database ending `_test`; do not run it against application data or reset an application's spend ledger.
 
 CLI: set `APP_DEPLOYMENT=local`, a test `DATABASE_URL`, `AGENT_REPLAY=1`, and `DEMO_NOW=2026-11-03T09:00:00-05:00`. Run `npm run db:migrate`, then `npm run test:integration`. The runner supplies fake clients internally. Sandbox local connections/tsx/build workers may require escalation.
 

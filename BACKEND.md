@@ -52,7 +52,9 @@ There is no submission route. Denials, appeal matching, letter parsing, extra ro
 - `npm run eval`: deterministic fixture/source/coverage/gate metrics, explicitly fake-client.
 - `npm run test:integration`: real PostgreSQL plus fake model clients. Use a **fresh, isolated database whose name ends `_test`**, migrate it first, set `APP_DEPLOYMENT=local`, `AGENT_REPLAY=1`, `DEMO_NOW=2026-11-03T09:00:00-05:00`. It mutates only test fixtures and ledger state. Never point it at an application database.
 
-The integration suite covers the full missing-note/date-conflict/approval flow, duplicate execution, concurrent approval, no false invalidation, immutable history, foreign-case route denial, failed/skipped runs, database grants/audit protection, login throttling and spend settlement/expiry. Hosted Neon concurrency and live-model output quality still need environment-specific verification.
+The integration suite covers the full missing-note/date-conflict/approval flow, duplicate execution, concurrent approval, no false invalidation, immutable history, foreign-case route denial, failed/skipped runs, stale-run sweep and late workers, database grants/audit protection, CHECK invariants, same-case foreign keys, login throttling and spend settlement/expiry. Hosted Neon concurrency and live-model output quality still need environment-specific verification.
+
+A stuck run recovers through normal polling: `GET /api/runs/:id`, `GET /api/cases/:id` and `GET /api/cases/:id/validation` mark a run with a heartbeat over 10 minutes old as `failed`, and its open agents as `timed_out` with `errorKind: "stale"`. Approval and run start do the same. Approval stays blocked until a new run completes.
 
 ## Contract notes for review
 

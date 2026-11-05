@@ -14,6 +14,7 @@ import type {ClaudeClient} from "../lib/harness/run-agent";
 import {testSpendLedger} from "./spend-integration";
 import {testApproval} from "./approval-integration";
 import {testAuth} from "./auth-integration";
+import {testInvariantChecks,testSameCaseConstraints} from "./security-integration";
 import {createSpendLedger} from "../lib/db/spend-ledger";
 const env=getEnv();
 const url=env.DATABASE_URL;
@@ -54,6 +55,53 @@ async function runScheduled(fail=false){
    assert.equal(counter.calls,3,"duplicate execution must make one model call per agent only");
   }
  }
+}
+async function runningGroup(heartbeatAt:Date){
+ const id=randomUUID(),now=new Date();
+ await db.insert(s.runGroups).values({id,caseId:"UR-1042",status:"running",asOf:now,startedAt:now,heartbeatAt});
+ await db.insert(s.agentRuns).values((["clinical_documentation","case_assembly_drafting","independent_quality"] as const).map(agent=>({id:randomUUID(),caseId:"UR-1042",runGroupId:id,agent,agentVersion:"pending",model:"none",inputHash:"pending",inputDocumentIds:[],status:"queued"})));
+ return id;
+}
+const minutesAgo=(minutes:number)=>new Date(Date.now()-minutes*60000);
+async function assertSwept(id:string,label:string){
+ const [group]=await db.select().from(s.runGroups).where(eq(s.runGroups.id,id));assert.equal(group.status,"failed",label);
+ const rows=await db.select().from(s.agentRuns).where(eq(s.agentRuns.runGroupId,id));
+ assert.deepEqual(rows.map(row=>[row.status,row.errorKind]),Array(3).fill(["timed_out","stale"]),label);
+ const events=await db.select().from(s.auditEvents).where(and(eq(s.auditEvents.action,"run_stale"),eq(s.auditEvents.objectId,id)));assert.equal(events.length,1,label);
+ const [row]=await db.select().from(s.cases).where(eq(s.cases.id,"UR-1042"));assert.equal(row.status,"needs_review",label);
+}
+async function testStaleSweep(foreignUserId:string,approvalBody:unknown){
+ const owner=actor;
+ // Heartbeat younger than the limit is a live run, not a stale one.
+ const live=await runningGroup(minutesAgo(9));
+ assert.equal((await okay("GET",`runs/${live}`)).status,"running");
+ await db.update(s.runGroups).set({heartbeatAt:minutesAgo(11)}).where(eq(s.runGroups.id,live));
+ // Access is checked first: a foreign poll can neither read nor sweep the run.
+ actor={userId:foreignUserId,role:"clinician"};
+ assert.equal((await api("GET",`runs/${live}`)).status,404);
+ actor=owner;
+ const [untouched]=await db.select().from(s.runGroups).where(eq(s.runGroups.id,live));assert.equal(untouched.status,"running");
+ assert.equal((await api("GET",`runs/${live}`)).status,200);await assertSwept(live,"GET run");
+ for(const [label,request] of [["GET case",()=>api("GET","cases/UR-1042")],["GET validation",()=>api("GET","cases/UR-1042/validation")]] as const){
+  const id=await runningGroup(minutesAgo(11));
+  assert.equal((await request()).status,200,label);await assertSwept(id,label);
+ }
+ // Refused approval still commits the sweep.
+ const refused=await runningGroup(minutesAgo(11));
+ assert.equal((await api("POST","cases/UR-1042/approve",approvalBody)).status,409);await assertSwept(refused,"POST approve");
+ // The swept run frees the one-active-run slot, and a worker finishing late cannot undo the sweep.
+ const late=await runningGroup(new Date()),spendRef=`late-${late}`;
+ const client:ClaudeClient={messages:{parse:async params=>{
+  await db.update(s.runGroups).set({heartbeatAt:minutesAgo(11)}).where(eq(s.runGroups.id,late));
+  await okay("GET",`runs/${late}`);
+  return fakeClient().messages.parse(params);
+ }}};
+ const packets=await db.select({id:s.packetVersions.id}).from(s.packetVersions).where(eq(s.packetVersions.caseId,"UR-1042"));
+ await executeGroup(db,late,{client,env:{...integrationEnv,AGENT_REPLAY:false},replay:"off",spend:{ledger:createSpendLedger(db),environment:"local",agentRunRef:spendRef}});
+ await assertSwept(late,"late worker");
+ assert.equal((await db.select({id:s.packetVersions.id}).from(s.packetVersions).where(eq(s.packetVersions.caseId,"UR-1042"))).length,packets.length,"late worker must not create a packet");
+ const reservations=await db.select().from(s.spendReservations).where(eq(s.spendReservations.agentRunRef,spendRef));
+ assert.deepEqual(reservations.map(row=>row.status),["settled"],"late worker still settles spend");
 }
 async function main(){
  await seed(db);await seed(db);
@@ -96,11 +144,13 @@ async function main(){
  const [failedGroup]=await db.select().from(s.runGroups).where(eq(s.runGroups.caseId,"UR-1042")).orderBy(sql`${s.runGroups.startedAt} desc`).limit(1);
  status=await okay("GET",`runs/${failedGroup.id}`);assert.equal(status.status,"failed");assert.deepEqual(status.agents.map((row:{status:string})=>row.status).sort(),["failed","skipped","skipped"]);
  validation=await okay("GET","cases/UR-1042/validation");assert(validation.blockers.some((b:{code:string})=>b.code==="run_incomplete"));
+ await testStaleSweep(foreign,approvalBody);
  await assert.rejects(db.update(s.auditEvents).set({action:"tamper"}),/Failed query/);
  await db.transaction(async tx=>{await tx.execute(sql`SET LOCAL ROLE app_rw`);await tx.select().from(s.documents).limit(1);});
  await assert.rejects(db.transaction(async tx=>{await tx.execute(sql`SET LOCAL ROLE app_rw`);await tx.update(s.documents).set({content:"tamper"}).where(eq(s.documents.id,uploaded.id));}));
  await assert.rejects(db.transaction(async tx=>{await tx.execute(sql`SET LOCAL ROLE app_rw`);await tx.delete(s.auditEvents);}));
+ await testInvariantChecks(db);await testSameCaseConstraints(db);
  await testSpendLedger(db);await testApproval(db);await testAuth(db);
- console.log(JSON.stringify({status:"passed",mode:"fake-client + real PostgreSQL",liveModelCalls:0,checks:["idempotent seed","full UR-1042 flow","source-linked approval","concurrent approval","identical rerun","duplicate execution","immutable history","cross-case routes","failed run skips","audit trigger","document grants","spend concurrency","auth throttle"]},null,2));
+ console.log(JSON.stringify({status:"passed",mode:"fake-client + real PostgreSQL",liveModelCalls:0,checks:["idempotent seed","full UR-1042 flow","source-linked approval","concurrent approval","identical rerun","duplicate execution","immutable history","cross-case routes","failed run skips","stale sweep on poll, case read, gate and approval","late worker cannot undo sweep","audit trigger","document grants","invariant checks","same-case foreign keys","spend concurrency","auth throttle"]},null,2));
 }
 main().finally(()=>pool.end());
