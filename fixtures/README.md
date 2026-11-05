@@ -9,6 +9,7 @@
 | `ur-1042/late-arrival/` | The Nov 2 note, held back so the demo can "receive" it and trigger reruns |
 | `ur-1042/payer-responses/` | Four alternate payer replies after submission: request for info (asks for the Nov 2 note), full approval, partial approval (Nov 4–5 approved, Nov 6 denied) and denial (PHP offered, expedited appeal). `expected-fields.json` holds the correct parsed fields for letter-parser evals |
 | `packets/a` to `packets/e` | Denial packets: denial letter, intake, treatment plan, progress notes, answer key |
+| `replay/` | Reviewed agent recordings for the UR-1042 demo (synthetic, model output only), recorded live on Haiku 5.5 on 2026-11-05 for case-assembly 1.3.0, clinical-documentation 1.5.0 and independent-quality 1.3.0. The hosted demo replays them with `AGENT_REPLAY_DIR=fixtures/replay`. A prompt change makes them miss; re-record and replace them in a PR |
 | `packets/*/appeal-history/` | The appeal chain after each denial: internal appeal decision (upheld) and external review decision (the real case's outcome), plus `expected-fields.json` |
 
 Rules:

@@ -29,7 +29,7 @@ Neon project `ur-appeals`, Free plan, AWS US East, provisioned through the Verce
 
 `AGENT_REPLAY=1` requires actual recordings matching the agent version, model and prompt. A missing recording fails visibly; the repo does not contain fabricated recordings. `AGENT_RECORD=1` records successful live responses. Production replay requires `REPLAY_PRODUCTION_LABELED=1`. `DEMO_NOW=2026-11-03T09:00:00-05:00` freezes business time only; audit, throttling and expiry use real time.
 
-Live runs on Haiku 5.5 have been made under the spend stop. Replay recordings live in `.agent-replay/`, which is gitignored, so a fresh clone or a hosted deployment has none until they are copied or re-recorded.
+Live runs on Haiku 5.5 have been made under the spend stop. Local recordings go to `.agent-replay/`, which is gitignored. The reviewed set for the UR-1042 demo is committed in `fixtures/replay/`; set `AGENT_REPLAY_DIR=fixtures/replay` to use it, as the hosted demo does. `next.config.ts` bundles that folder with the API.
 
 ## Terminal walkthrough
 

@@ -1,0 +1,45 @@
+{
+  "checks": [
+    {
+      "name": "unsupported_statements",
+      "result": "needs_review",
+      "detail": "Most draft claims trace to supplied facts and quotes. Claim-29 says the family meeting 'is scheduled for November 4', while the day 3 note says 'Family meeting not yet held; sibling unavailable until November 4.' and 'Family meeting November 4.' The scheduling wording is a reasonable reading but goes slightly beyond the quoted text.",
+      "affected": [
+        "claim-29"
+      ]
+    },
+    {
+      "name": "source_labeling",
+      "result": "needs_review",
+      "detail": "Claim-2 is labeled direct_quote, but its text is a paraphrase of the intake wording 'stated a plan to overdose and intent to act'. The label may overstate how literal the claim is.",
+      "affected": [
+        "claim-2"
+      ]
+    },
+    {
+      "name": "date_consistency",
+      "result": "pass",
+      "detail": "Service dates in the draft claims match the supplied notes: day 1 on 2026-11-01, day 2 on 2026-11-02 (late entry signed November 3), and day 3 on 2026-11-03. Observation step-down to every 15 minutes is dated to day 2 in the draft and to November 2 in the day 3 note.",
+      "affected": []
+    },
+    {
+      "name": "requested_vs_authorized_periods",
+      "result": "pass",
+      "detail": "The draft does not conflate the requested period (November 4 through November 6) with the authorized period (November 1 through November 3). The only November 4 reference is the family meeting date.",
+      "affected": []
+    },
+    {
+      "name": "contradictions",
+      "result": "pass",
+      "detail": "The draft presents the intent conflict between the intake and the day 1 progress note without resolving it, and it records the risk trajectory from high acute risk to moderate risk on day 3 without contradicting the source notes.",
+      "affected": []
+    },
+    {
+      "name": "stale_output",
+      "result": "pass",
+      "detail": "Open questions on the sertraline dose, discharge plan, unsigned treatment plan, and late-entry day 2 note match the supplied documents. No reliance on superseded content was found.",
+      "affected": []
+    }
+  ],
+  "issues": []
+}

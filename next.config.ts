@@ -11,6 +11,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // runAgent() reads replay recordings from disk at request time, so the hosted API bundle must ship them.
+  outputFileTracingIncludes: { "/api/**/*": ["./fixtures/replay/*.json"] },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
