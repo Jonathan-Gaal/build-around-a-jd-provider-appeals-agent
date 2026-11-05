@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Database, Db } from "../db";
 import * as s from "../db/schema";
@@ -9,6 +9,7 @@ import { ACCESS_RULES, checkRole, checkCaseAccess, type Action, type SessionUser
 import { withCaseLock } from "../cases/lock";
 import { writeAudit } from "../audit/write";
 import { HttpError } from "./errors";
+import { caseAccessRecord } from "../auth/case-scope";
 export type RouteContext={db:Db;user:SessionUser;caseId:string|null;body:unknown;request:Request};
 type RouteResource={kind:"case"|"document"|"claim"|"issue"|"run";id:string};
 type RouteOptions={write?:boolean;upload?:boolean;schema?:z.ZodType;handler:(context:RouteContext)=>Promise<unknown>};
@@ -58,7 +59,7 @@ export async function executeRoute(request:Request,definition:RouteDefinition,de
    if(definition.resource.kind!=="case")safeObjectId=definition.resource.id;
    const resolvedCaseId=await resolveCase(db,definition.resource);
    if(!resolvedCaseId)throw new HttpError(404,"not_found");
-   const [row]=await db.select({assignedTo:s.cases.assignedTo}).from(s.cases).where(eq(s.cases.id,resolvedCaseId));
+   const row=await caseAccessRecord(db,resolvedCaseId,user!);
    if(row){caseId=resolvedCaseId;if(definition.resource.kind==="case")safeObjectId=caseId;}
    const access=checkCaseAccess(user,definition.action,row??null);
    if(!access.allowed)throw new HttpError(access.status,"not_found");
@@ -66,12 +67,12 @@ export async function executeRoute(request:Request,definition:RouteDefinition,de
   const context:RouteContext={db,user:user!,caseId,body,request};
   const invoke=async(tx:Db)=>{
    if(caseId){
-    const [row]=await tx.select({assignedTo:s.cases.assignedTo}).from(s.cases).where(and(eq(s.cases.id,caseId),eq(s.cases.assignedTo,user!.userId)));
-    if(!row)throw new HttpError(404,"not_found");
+    const row=await caseAccessRecord(tx,caseId,user!);
+    if(!checkCaseAccess(user,definition.action,row).allowed)throw new HttpError(404,"not_found");
    }
    return definition.handler({...context,db:tx});
   };
-  const result=definition.write&&caseId?await withCaseLock(db,caseId,invoke):await invoke(db);
+  const result=(definition.write||definition.action==="read_packet")&&caseId?await withCaseLock(db,caseId,invoke):await invoke(db);
   if(result && typeof result==="object" && "error" in result && result.error instanceof HttpError)throw result.error;
   return Response.json(result,{headers:{"Cache-Control":"no-store","X-Content-Type-Options":"nosniff"}});
  }catch(error){

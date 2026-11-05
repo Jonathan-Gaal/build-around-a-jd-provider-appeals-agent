@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { WorkspaceProvider } from "@/components/workspace-shell";
 
 export const metadata: Metadata = {
-  title: "UR Workspace",
+  title: "Wellline Review · Utilization Review",
   description: "Behavioral-health utilization review workspace (synthetic data only)",
 };
 
@@ -13,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><WorkspaceProvider>{children}</WorkspaceProvider></body>
     </html>
   );
 }
