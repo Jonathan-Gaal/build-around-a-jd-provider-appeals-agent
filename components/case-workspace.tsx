@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { WorkspaceShell, useWorkspaceTheme } from "./workspace-shell";
 import { ApiError, readApi } from "@/lib/client/api";
 import type { CaseDetail, Claim, DocumentSummary, Issue, RunDetail, Validation } from "@/lib/client/types";
 import { ApprovalPanel, EvidencePanel, IssuesPanel, RecheckPanel, SummaryPanel } from "./case-panels";
@@ -43,13 +43,7 @@ export function CaseWorkspace({ caseId, tab }: { caseId: string; tab: CaseTab })
   const [data, setData] = useState<CaseData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [night, setNight] = useState(false);
-
-  useEffect(() => { setNight(window.localStorage.getItem("wellline-theme") === "night"); }, []);
-  const changeTheme = () => setNight(current => {
-    window.localStorage.setItem("wellline-theme", current ? "day" : "night");
-    return !current;
-  });
+  const { night } = useWorkspaceTheme();
 
   const reload = useCallback(async () => {
     const base = `/api/cases/${encodeURIComponent(caseId)}`;
@@ -79,36 +73,11 @@ export function CaseWorkspace({ caseId, tab }: { caseId: string; tab: CaseTab })
   const base = `/cases/${encodeURIComponent(caseId)}`;
   const activeIssues = data?.issues.filter(issue => issue.blocking && issue.status === "open").length ?? 0;
   const status = data?.detail.case.status ?? "needs_review";
-  const dark = night ? "bg-[#13211d] text-[#e6efe9]" : "bg-[#f7f8f7] text-[#1d392f]";
-  const surface = night ? "border-[#294137] bg-[#1b2d26]" : "border-[#dce5de] bg-white";
   const muted = night ? "text-[#a2b7a9]" : "text-[#63786c]";
-
-  return (
-    <div className={`min-h-screen ${dark}`}>
-      <div className="grid min-h-screen lg:grid-cols-[224px_minmax(0,1fr)]">
-        <aside className={`border-b p-5 lg:border-b-0 lg:border-r ${night ? "border-[#294137] bg-[#182b23]" : "border-[#dce5de] bg-[#eef2ee]"}`}>
-          <Link href="/" className="flex items-center gap-3" aria-label="Wellline Review, back to work queue">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-[#255e4b] font-serif text-xl font-bold text-white">W</span>
-            <span><strong className="block text-sm">Wellline Review</strong><small className={`block text-[10px] tracking-wider ${muted}`}>CLINICIAN WORKSPACE</small></span>
-          </Link>
-          <p className={`mt-10 hidden text-xs font-semibold tracking-widest lg:block ${muted}`}>CASE REVIEW</p>
-          <nav aria-label="Case review" className="mt-3 flex flex-wrap gap-1 lg:block">
-            {tabs.map(item => <Link key={item.key} href={`${base}/${item.key}`} aria-current={tab === item.key ? "page" : undefined} className={`block rounded-lg px-3 py-2 text-sm transition-colors ${tab === item.key ? night ? "bg-[#2b5140] font-semibold text-white" : "bg-[#dfeae2] font-semibold text-[#214a39]" : night ? "text-[#b2c4b7] hover:bg-[#24392e]" : "text-[#476354] hover:bg-[#e4eee6]"}`}>{item.label}{item.key === "issues" && activeIssues > 0 ? ` (${activeIssues})` : ""}</Link>)}
-          </nav>
-          <div className={`mt-10 hidden rounded-xl border p-3 text-xs lg:block ${night ? "border-[#345644] bg-[#213a2d] text-[#b8cebb]" : "border-[#d4e4d8] bg-[#e6f0e7] text-[#476555]"}`}>
-            <strong className="block">SYNTHETIC DATA</strong>No payer submission
-          </div>
-        </aside>
-        <main className="min-w-0">
-          <header className={`flex min-h-16 flex-wrap items-center justify-between gap-3 border-b px-6 py-3 lg:px-10 ${surface}`}>
-            <div className="text-sm"><strong>{caseId}</strong><span className={`ml-2 ${muted}`}>· Concurrent review · {data?.detail.latestPacketVersion ? `Packet v${data.detail.latestPacketVersion.version}` : "Packet pending"}</span></div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className={muted}>Due {formatDate(data?.detail.case.dueAt ?? null, true)}</span>
-              <button type="button" onClick={changeTheme} aria-label={night ? "Switch to day mode" : "Switch to night mode"} className={`rounded-full px-3 py-2 font-semibold ${night ? "bg-[#2d4a3a] text-[#d6e9d8]" : "bg-[#e9f2e9] text-[#3c674d]"}`}>{night ? "☀ Day mode" : "☾ Night mode"}</button>
-              <button type="button" onClick={() => signOut({ callbackUrl: "/login" })} className={`flex size-9 items-center justify-center rounded-full font-bold ${night ? "bg-[#345544]" : "bg-[#e7efe8]"}`} aria-label="Sign out of demo clinician account">CR</button>
-            </div>
-          </header>
-          <div className="mx-auto max-w-[1320px] px-6 py-9 lg:px-10">
+  const surface = night ? "border-[#294137] bg-[#1b2d26]" : "border-[#dce5de] bg-white";
+  return <WorkspaceShell title={caseId + " · Concurrent review · " + (data?.detail.latestPacketVersion ? "Packet v" + data.detail.latestPacketVersion.version : "Packet pending")}
+    headerDetail={"Due " + formatDate(data?.detail.case.dueAt ?? null, true)}
+    caseNavigation={<nav aria-label="Case review" className="mt-3 flex flex-wrap gap-1 lg:block">{tabs.map(item => <Link key={item.key} href={base + "/" + item.key} aria-current={tab === item.key ? "page" : undefined} className={"block rounded-lg px-3 py-2 text-sm " + (tab === item.key ? "bg-[#649b72]/20 font-semibold" : muted)}>{item.label}{item.key === "issues" && activeIssues > 0 ? " (" + activeIssues + ")" : ""}</Link>)}</nav>}>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <span className={`text-xs font-bold tracking-[0.14em] ${night ? "text-[#99c7a6]" : "text-[#507763]"}`}>CLINICIAN MVP · SYNTHETIC CASE</span>
               {data && <span className={`rounded-full px-3 py-1 text-xs font-semibold ${activeIssues || data.validation.blockers.length ? night ? "bg-[#5a4328] text-[#ffe2b3]" : "bg-[#fbf1e2] text-[#94682d]" : night ? "bg-[#264e39] text-[#b9e5c3]" : "bg-[#e6f2e7] text-[#356546]"}`}>{activeIssues ? `${activeIssues} BLOCKING ISSUES` : statusLabel(status)}</span>}
@@ -125,9 +94,5 @@ export function CaseWorkspace({ caseId, tab }: { caseId: string; tab: CaseTab })
                 <p className={`mt-8 text-xs ${muted}`}>This workspace prepares and checks a synthetic packet. A clinician reviews every claim and signs off the exact version. Nothing is sent to a payer.</p>
               </>
             )}
-          </div>
-        </main>
-      </div>
-    </div>
-  );
+  </WorkspaceShell>;
 }

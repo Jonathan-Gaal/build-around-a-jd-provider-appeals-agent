@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { WorkspaceProvider } from "@/components/workspace-shell";
 
 export const metadata: Metadata = {
   title: "Wellline Review · Clinician Workspace",
@@ -13,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><WorkspaceProvider>{children}</WorkspaceProvider></body>
     </html>
   );
 }
