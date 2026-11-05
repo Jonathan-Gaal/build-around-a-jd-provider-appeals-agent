@@ -18,6 +18,8 @@
     "test:integration": "tsx --conditions=react-server scripts/backend-integration.ts",
     "eval": "tsx --conditions=react-server scripts/eval.ts",
     "demo:walkthrough": "bash scripts/demo-local.sh",
+    "demo:record": "tsx scripts/record-demo.ts",
+    "test:demo": "tsx e2e/demo-mode.ts",
     "test:ui:server": "tsx --conditions=react-server e2e/ur1042-server.ts",
     "test:ui:verify": "tsx e2e/verify-ur1042-evidence.ts",
     "test:agent-loop": "tsx --conditions=react-server e2e/agent-loop-errors.ts",

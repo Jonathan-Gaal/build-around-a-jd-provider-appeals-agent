@@ -3,6 +3,7 @@
 import { type FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function LoginPage() {
           {error && <p role="alert" className="text-sm text-[#a3453d]">{error}</p>}
           <button disabled={busy} className="w-full rounded-lg bg-[#255e4b] px-4 py-3 text-sm font-semibold text-white hover:bg-[#1d4e3d] disabled:opacity-50">{busy ? "Signing in…" : "Sign in"}</button>
         </form>
+        <Link href="/demo" className="mt-6 flex items-center justify-center rounded-lg border border-[#255e4b] px-4 py-3 text-sm font-semibold text-[#255e4b] hover:bg-[#255e4b]/5">Watch the demo <span aria-hidden="true" className="ml-2">▶</span></Link>
         <p className="mt-7 text-xs text-[#849187]">Synthetic data only. No payer submission.</p>
       </div>
     </main>
