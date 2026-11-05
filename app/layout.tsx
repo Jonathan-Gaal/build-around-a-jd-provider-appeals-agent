@@ -3,7 +3,7 @@ import "./globals.css";
 import { WorkspaceProvider } from "@/components/workspace-shell";
 
 export const metadata: Metadata = {
-  title: "Wellline Review · Clinician Workspace",
+  title: "Wellline Review · Utilization Review",
   description: "Behavioral-health utilization review workspace (synthetic data only)",
 };
 

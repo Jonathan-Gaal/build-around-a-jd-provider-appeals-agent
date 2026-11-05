@@ -8,6 +8,7 @@ import { getEnv, type Env } from "../env";
 import { getDb, type Db } from "../db";
 import { loginThrottles, users } from "../db/schema";
 import { writeAudit } from "../audit/write";
+import { isRole } from "./roles";
 
 export const LoginInput = z.object({
   account: z.string().min(1).max(100).regex(/^[a-z0-9_]+$/),
@@ -73,7 +74,7 @@ export async function attemptLogin(
   // Compare even for missing configuration and unknown users; no default credential exists.
   const equal = credentialMatches(parsed.success ? parsed.data.credential : "", env.demoCredentials[account]);
   const user = parsed.success ? await store.findUser(account) : null;
-  if (parsed.success && equal && user?.role === "clinician") {
+  if (parsed.success && equal && user && isRole(user.role)) {
     await store.putState(accountKey, { failureTimes: [], blockedUntil: null });
     await store.audit("success", "login_succeeded", user.id);
     return { status: "ok", user };

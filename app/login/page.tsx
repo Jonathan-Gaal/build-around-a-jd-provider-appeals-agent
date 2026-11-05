@@ -27,10 +27,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-2xl border border-[#dce5de] bg-white p-8 shadow-sm">
         <div className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-lg bg-[#255e4b] font-serif text-2xl font-bold text-white">W</span><span className="font-semibold">Wellline Review</span></div>
         <p className="mt-10 text-xs font-bold tracking-widest text-[#5c806a]">SYNTHETIC DEMO</p>
-        <h1 className="mt-2 font-serif text-3xl">Clinician sign-in</h1>
-        <p className="mt-2 text-sm text-[#63786c]">Use the configured demo credential for the fictional clinician account.</p>
+        <h1 className="mt-2 font-serif text-3xl">Workspace sign-in</h1>
+        <p className="mt-2 text-sm text-[#63786c]">Sign in with your own fictional account. Your assigned role determines your workspace and permissions.</p>
         <form onSubmit={submit} className="mt-8 space-y-5">
-          <label className="block text-sm font-semibold">Account<input required autoComplete="username" value={account} onChange={e => setAccount(e.target.value)} className="mt-2 block w-full rounded-lg border border-[#cbd9ce] px-4 py-3 outline-none focus:border-[#255e4b]" /></label>
+          <label className="block text-sm font-semibold">Account<select autoComplete="username" value={account} onChange={e => setAccount(e.target.value)} className="mt-2 block w-full rounded-lg border border-[#cbd9ce] bg-white px-4 py-3 outline-none focus:border-[#255e4b]"><option value="clinician_a">Clinician A · clinician_a</option><option value="clinician_b">Clinician B · clinician_b</option><option value="coordinator_a">Coordinator · coordinator_a</option><option value="manager_a">Manager · manager_a</option><option value="packet_a">Packet preparation · packet_a</option></select></label>
           <label className="block text-sm font-semibold">Demo credential<input required type="password" autoComplete="current-password" value={credential} onChange={e => setCredential(e.target.value)} className="mt-2 block w-full rounded-lg border border-[#cbd9ce] px-4 py-3 outline-none focus:border-[#255e4b]" /></label>
           {error && <p role="alert" className="text-sm text-[#a3453d]">{error}</p>}
           <button disabled={busy} className="w-full rounded-lg bg-[#255e4b] px-4 py-3 text-sm font-semibold text-white hover:bg-[#1d4e3d] disabled:opacity-50">{busy ? "Signing in…" : "Sign in"}</button>
