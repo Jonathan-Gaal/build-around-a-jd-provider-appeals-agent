@@ -16,6 +16,7 @@ export async function installSecurity(db:Database){
  await db.execute(sql`GRANT SELECT, INSERT ON documents TO app_rw`);
  await db.execute(sql`GRANT UPDATE (verification_state, verified_by, verified_at, verification_source, rejection_reason) ON documents TO app_rw`);
  await db.execute(sql`GRANT SELECT ON upload_allowlist TO app_rw`);
+ await db.execute(sql`GRANT SELECT ON case_members TO app_rw`);
  await db.execute(sql`GRANT SELECT, INSERT, UPDATE ON spend_ledger, spend_reservations TO spend_rw`);
 }
 

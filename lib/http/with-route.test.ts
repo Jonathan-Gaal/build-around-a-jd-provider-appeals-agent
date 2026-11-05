@@ -22,7 +22,7 @@ describe("route authorization boundary", () => {
     const events: string[] = [];
     const db = new Proxy({}, { get() { events.push("database"); throw new Error("database_must_not_be_touched"); } }) as Database;
     const definition: RouteDefinition = { action: "read_case", resource: { kind: "case", id: "UR-1042" }, handler: async () => { events.push("handler"); return {}; } };
-    for (const [user, status] of [[null, 401], [{ userId: "u-a", role: "coordinator" }, 403]] as const) {
+    for (const [user, status] of [[null, 401], [{ userId: "u-a", role: "packet_staff" }, 403]] as const) {
       const response = await executeRoute(new Request("https://example.test/api/cases/UR-1042"), definition, {
         db, env, session: async () => { events.push("session"); return user; },
       });
