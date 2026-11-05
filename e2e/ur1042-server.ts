@@ -17,6 +17,7 @@ import { connectDatabase } from "../lib/db";
 import * as s from "../lib/db/schema";
 import { seed, DEMO_USER_ID } from "../lib/db/seed";
 import { handleApi } from "../lib/http/api";
+import { isLiveAccount } from "../lib/auth/live-session";
 import { executeGroup, startGroup } from "../lib/orchestrator/run";
 import { withCaseLock } from "../lib/cases/lock";
 import { createSpendLedger } from "../lib/db/spend-ledger";
@@ -121,7 +122,7 @@ async function api(req: IncomingMessage, res: ServerResponse) {
   const request = new Request(origin + req.url, { method: req.method, headers, ...(["GET", "HEAD"].includes(req.method ?? "GET") ? {} : { body: Buffer.concat(chunks).toString("utf8") }) });
   const token = await getToken({ req: request, secret: env.AUTH_SECRET!, secureCookie: false });
   const [identity] = token && typeof token.userId === "string" ? await db.select().from(s.users).where(eq(s.users.id, token.userId)) : [];
-  const actor = identity ? { userId: identity.id, role: identity.role } : null;
+  const actor = identity && isLiveAccount(identity, token?.sessionVersion) ? { userId: identity.id, role: identity.role } : null;
   const response = await handleApi(request, new URL(request.url).pathname.slice(5).split("/"), { db, session: async () => actor, schedule, env: testEnv });
   res.writeHead(response.status, { ...Object.fromEntries(response.headers.entries()), "x-ur-e2e-mode": "fake-clients-isolated-db" });
   res.end(Buffer.from(await response.arrayBuffer()));

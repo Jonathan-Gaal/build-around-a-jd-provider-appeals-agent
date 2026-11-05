@@ -11,7 +11,7 @@ import { authorizeDemoLogin } from "./login";
 import type { SessionUser } from "./access";
 import { eq, sql } from "drizzle-orm";
 import { users } from "../db/schema";
-import { isRole } from "./roles";
+import { isLiveAccount } from "./live-session";
 
 declare module "next-auth" {
   interface User { role?: string }
@@ -22,12 +22,6 @@ declare module "next-auth/jwt" {
 }
 
 class LoginThrottled extends CredentialsSignin { code = "login_throttled"; }
-
-// A token is live only while its session version matches the account's. Sign-out bumps the version,
-// so a copied token stops working even though the browser cookie is already gone.
-export function isLiveAccount(current: { role: string; sessionVersion: number } | undefined, tokenVersion: number | undefined): boolean {
-  return !!current && isRole(current.role) && tokenVersion === current.sessionVersion;
-}
 
 export function loginIp(request: Request, env: Pick<Env, "VERCEL">): string {
   // Vercel overwrites this header. Else use a shared bucket rather than trust caller-supplied IPs.
