@@ -1,5 +1,7 @@
 # Role-flow frontend previews
 
+Historical preview reference. The active `/roles/*` pages now use real authenticated accounts and server-enforced case permissions; see [role logins](role-logins.md). The browser-only actions described below are no longer the active workspaces.
+
 The user requested the Penpot future-role wireframes as frontend-only application flows. These previews extend the visual demo; they do not extend the backend's clinician account permissions or the clinical MVP's role model.
 
 Reference: Penpot file `08b470c5-dda4-812a-8008-e46ad6758ba9`, PRD v3 Role map, Coordinator, Manager and Submission staff future boards, read in the earlier November 4 comparison. The connector was disconnected during implementation; the previously observed board contents supply the design reference.

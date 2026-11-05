@@ -34,10 +34,10 @@ docs/        product, architecture, data, research and plan docs
 
 ## Running it
 
-Not runnable yet. Once the app is scaffolded:
+For local synthetic development, configure the deployment, database, origin, auth secret and per-account credentials listed in `.env.example`. See [role accounts and permissions](docs/product/role-logins.md) for workspace access and tests.
 
 ```
-cp .env.example .env.local     # add ANTHROPIC_API_KEY and DATABASE_URL
+cp .env.example .env.local     # configure local values; never commit credentials
 npm install
 npm run db:push && npm run db:seed
 npm run dev

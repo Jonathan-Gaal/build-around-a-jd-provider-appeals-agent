@@ -1,2 +1,3 @@
 import { WorkspaceOverview } from "@/components/workspace-overview";
-export default function Page() { return <WorkspaceOverview view="queue" />; }
+import { requirePageRole } from "@/lib/auth/page-access";
+export default async function Page() { await requirePageRole(["clinician"]); return <WorkspaceOverview view="queue" />; }

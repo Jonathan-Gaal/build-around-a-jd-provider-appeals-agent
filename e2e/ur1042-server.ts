@@ -120,7 +120,8 @@ async function api(req: IncomingMessage, res: ServerResponse) {
   for (const [name, value] of Object.entries(req.headers)) if (value !== undefined) headers.set(name, Array.isArray(value) ? value.join(",") : value);
   const request = new Request(origin + req.url, { method: req.method, headers, ...(["GET", "HEAD"].includes(req.method ?? "GET") ? {} : { body: Buffer.concat(chunks).toString("utf8") }) });
   const token = await getToken({ req: request, secret: env.AUTH_SECRET!, secureCookie: false });
-  const actor = token && typeof token.userId === "string" && typeof token.role === "string" ? { userId: token.userId, role: token.role } : null;
+  const [identity] = token && typeof token.userId === "string" ? await db.select().from(s.users).where(eq(s.users.id, token.userId)) : [];
+  const actor = identity ? { userId: identity.id, role: identity.role } : null;
   const response = await handleApi(request, new URL(request.url).pathname.slice(5).split("/"), { db, session: async () => actor, schedule, env: testEnv });
   res.writeHead(response.status, { ...Object.fromEntries(response.headers.entries()), "x-ur-e2e-mode": "fake-clients-isolated-db" });
   res.end(Buffer.from(await response.arrayBuffer()));

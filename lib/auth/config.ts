@@ -9,6 +9,9 @@ import { getDb } from "../db";
 import { writeAudit } from "../audit/write";
 import { authorizeDemoLogin } from "./login";
 import type { SessionUser } from "./access";
+import { eq } from "drizzle-orm";
+import { users } from "../db/schema";
+import { isRole } from "./roles";
 
 declare module "next-auth" {
   interface User { role?: string }
@@ -47,8 +50,12 @@ export function createAuthConfig(env: Env): NextAuthConfig {
         return token;
       },
       async session({ session, token }) {
-        session.user.id = typeof token.userId === "string" ? token.userId : "";
-        session.user.role = typeof token.role === "string" ? token.role : "";
+        // Re-read identity and role: an old JWT cannot retain a revoked role or deleted account.
+        const [current] = typeof token.userId === "string" ? await getDb().select().from(users).where(eq(users.id, token.userId)) : [];
+        session.user.id = current && isRole(current.role) ? current.id : "";
+        session.user.role = current && isRole(current.role) ? current.role : "";
+        session.user.name = current?.name ?? null;
+        session.user.email = current?.email ?? null;
         return session;
       },
       async redirect({ url }) {

@@ -1,24 +1,27 @@
 import "server-only";
+import type { Role } from "./roles";
+export type { Role } from "./roles";
 
 export const ACTIONS = [
   "list_cases", "read_case", "read_audit", "upload_document", "verify_document",
-  "start_run", "edit_claim", "resolve_issue", "approve",
+  "start_run", "edit_claim", "resolve_issue", "approve", "assign_case", "read_packet",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
-export type Role = "clinician" | "coordinator" | "supervisor";
 export type SessionUser = { userId: string; role: string };
 export type AccessDecision = { allowed: true } | { allowed: false; status: 401 | 403 | 404 };
 
 export const ACCESS_RULES: Readonly<Record<Action, { roles: readonly Role[]; caseScoped: boolean }>> = {
-  list_cases: { roles: ["clinician"], caseScoped: false },
-  read_case: { roles: ["clinician"], caseScoped: true },
-  read_audit: { roles: ["clinician"], caseScoped: true },
-  upload_document: { roles: ["clinician"], caseScoped: true },
+  list_cases: { roles: ["clinician", "coordinator", "supervisor", "packet_staff"], caseScoped: false },
+  read_case: { roles: ["clinician", "coordinator", "supervisor"], caseScoped: true },
+  read_audit: { roles: ["clinician", "supervisor"], caseScoped: true },
+  upload_document: { roles: ["clinician", "coordinator"], caseScoped: true },
   verify_document: { roles: ["clinician"], caseScoped: true },
   start_run: { roles: ["clinician"], caseScoped: true },
   edit_claim: { roles: ["clinician"], caseScoped: true },
   resolve_issue: { roles: ["clinician"], caseScoped: true },
   approve: { roles: ["clinician"], caseScoped: true },
+  assign_case: { roles: ["supervisor"], caseScoped: true },
+  read_packet: { roles: ["clinician", "packet_staff"], caseScoped: true },
 };
 
 export function checkRole(session: SessionUser | null, action: string): AccessDecision {
@@ -32,18 +35,18 @@ export function checkRole(session: SessionUser | null, action: string): AccessDe
 export function checkCaseAccess(
   session: SessionUser | null,
   action: string,
-  caseRecord: { assignedTo: string | null } | null,
+  caseRecord: { assignedTo: string | null; member?: boolean } | null,
 ): AccessDecision {
   const roleDecision = checkRole(session, action);
   if (!roleDecision.allowed) return roleDecision;
   if (!ACCESS_RULES[action as Action].caseScoped) return { allowed: true };
-  if (caseRecord === null || caseRecord.assignedTo === null || caseRecord.assignedTo !== session?.userId) {
+  if (caseRecord === null || (session?.role === "clinician" ? caseRecord.assignedTo !== session.userId : caseRecord.member !== true)) {
     return { allowed: false, status: 404 };
   }
   return { allowed: true };
 }
 
 export function listScopeFor(session: SessionUser): { assignedTo: string } {
-  if (!checkRole(session, "list_cases").allowed) throw new Error("access_denied");
+  if (session.role !== "clinician" || !checkRole(session, "list_cases").allowed) throw new Error("access_denied");
   return { assignedTo: session.userId };
 }

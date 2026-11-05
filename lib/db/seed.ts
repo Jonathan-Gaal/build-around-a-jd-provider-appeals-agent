@@ -8,6 +8,13 @@ import { parseFrontMatter } from "../fixtures/load-fixture";
 import { fixtureId, contentHash } from "../fixtures/ids";
 const fixtureSchema=z.object({synthetic:z.literal(true),case:z.object({id:z.literal("UR-1042"),type:z.literal("concurrent_review"),patient_label:z.string(),service:z.string(),level_of_care:z.string(),facility:z.string(),payer:z.string(),plan:z.string(),due_at:z.string()}),documents:z.array(z.string()),late_arrival:z.array(z.string()),authorization:z.object({auth_number:z.string(),status:z.string(),approved_start:z.string(),approved_end:z.string(),units:z.number(),source_document:z.string()}),review_period:z.object({requested_start:z.string(),requested_end:z.string(),review_point:z.string(),source_document:z.string()})});
 export const DEMO_USER_ID=fixtureId("users","clinician_a");
+export const DEMO_ACCOUNTS = [
+ { accountKey: "clinician_a", name: "Demo Clinician A (fictional)", role: "clinician" },
+ { accountKey: "clinician_b", name: "Demo Clinician B (fictional)", role: "clinician" },
+ { accountKey: "coordinator_a", name: "Demo Coordinator (fictional)", role: "coordinator" },
+ { accountKey: "manager_a", name: "Demo Manager (fictional)", role: "supervisor" },
+ { accountKey: "packet_a", name: "Demo Packet Staff (fictional)", role: "packet_staff" },
+] as const;
 export async function seed(db:Database,root=process.cwd()) {
  const directory=path.join(root,"fixtures/ur-1042");
  const fixture=fixtureSchema.parse(JSON.parse(await readFile(path.join(directory,"case.json"),"utf8")));
@@ -15,6 +22,11 @@ export async function seed(db:Database,root=process.cwd()) {
   await tx.insert(s.users).values({id:DEMO_USER_ID,accountKey:"clinician_a",email:"clinician_a@example.test",name:"Demo Clinician (fictional)",role:"clinician"}).onConflictDoNothing();
   const c=fixture.case;
   await tx.insert(s.cases).values({id:c.id,type:c.type,patientLabel:c.patient_label,service:c.service,levelOfCare:c.level_of_care,facility:c.facility,payer:c.payer,plan:c.plan,assignedTo:DEMO_USER_ID,dueAt:new Date(c.due_at),status:"needs_review",synthetic:true}).onConflictDoNothing();
+  for (const account of DEMO_ACCOUNTS) {
+   const id = fixtureId("users", account.accountKey);
+   await tx.insert(s.users).values({ id, ...account, email: `${account.accountKey}@example.test` }).onConflictDoNothing();
+   await tx.insert(s.caseMembers).values({ caseId: c.id, userId: id }).onConflictDoNothing();
+  }
   for(const file of [...fixture.documents,...fixture.late_arrival]) {
    const {meta,body}=parseFrontMatter(await readFile(path.join(directory,file),"utf8"));
    const type=z.enum(["intake","treatment_plan","progress_note","authorization_record","policy"]).parse(meta.type);

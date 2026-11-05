@@ -15,6 +15,13 @@
       "when": 1793823259747,
       "tag": "0001_damp_random",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793850141955,
+      "tag": "0002_role_membership_access",
+      "breakpoints": true
     }
   ]
 }

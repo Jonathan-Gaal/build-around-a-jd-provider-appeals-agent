@@ -16,6 +16,8 @@ import {approve} from "../cases/approval";
 import {startGroup} from "../orchestrator/run";
 import {LIMITS} from "../config/limits";
 import {writeAudit} from "../audit/write";
+import {caseScope} from "../auth/case-scope";
+import {assignmentSchema,assignCase,readApprovedPacket} from "../cases/role-workspace";
 const approveSchema=z.object({packetVersionId:z.uuid(),contentHash:z.string().regex(/^[a-f0-9]{64}$/),acknowledgement:z.string().trim().min(1).max(LIMITS.FREE_TEXT_MAX_CHARS)}).strict();
 export type ApiDependencies={db:Database;session:()=>Promise<SessionUser|null>;schedule:(runGroupId:string)=>void;env?:Env};
 export async function handleApi(request:Request,path:string[],deps:ApiDependencies):Promise<Response>{
@@ -26,7 +28,12 @@ export async function handleApi(request:Request,path:string[],deps:ApiDependenci
  if(kind==="cases"&&path.length===1&&method==="GET")definition={action:"list_cases",handler:async({db,user})=>{
   const status=new URL(request.url).searchParams.get("status");
   if(status&&!s.caseStatusEnum.enumValues.includes(status as typeof s.caseStatusEnum.enumValues[number]))throw new HttpError(400,"invalid_status");
-  const rows=await db.select().from(s.cases).where(and(eq(s.cases.assignedTo,user.userId),status?eq(s.cases.status,status as typeof s.caseStatusEnum.enumValues[number]):undefined)).orderBy(asc(s.cases.dueAt),asc(s.cases.id));
+  let rows=await db.select().from(s.cases).where(and(caseScope(db,user),status?eq(s.cases.status,status as typeof s.caseStatusEnum.enumValues[number]):undefined)).orderBy(asc(s.cases.dueAt),asc(s.cases.id));
+  if(user.role==="packet_staff"){
+   const approved=[];
+   for(const row of rows){try{await readApprovedPacket({db,user,caseId:row.id,body:{},request},false);approved.push(row);}catch(error){if(!(error instanceof HttpError)||error.status!==409)throw error;}}
+   rows=approved;
+  }
   const issueRows=rows.length?await db.select().from(s.issues).where(and(inArray(s.issues.caseId,rows.map(row=>row.id)),eq(s.issues.status,"open"))):[];
   return rows.map(row=>({id:row.id,patientLabel:row.patientLabel,type:row.type,levelOfCare:row.levelOfCare,dueAt:row.dueAt,status:row.status,issueCount:issueRows.filter(issue=>issue.caseId===row.id).length,blockingIssueCount:issueRows.filter(issue=>issue.caseId===row.id&&issue.blocking).length,lastUpdatedAt:row.updatedAt,overdue:row.dueAt!==null&&row.dueAt<businessNow(deps.env??getEnv()),synthetic:true}));
  }};
@@ -39,6 +46,9 @@ export async function handleApi(request:Request,path:string[],deps:ApiDependenci
   const env=deps.env??getEnv();return {case:row,reviewPeriod,authorization,latestPacketVersion:latestPacketVersion??null,latestRunGroupId:group?.id??null,demoClock:{enabled:isDemoClock(env),now:businessNow(env),timeZone:"America/New_York"},prototype:true};
  });
  if(kind==="cases"&&id&&path.length===3){
+  if(operation==="assignment"&&method==="PATCH")definition={action:"assign_case",write:true,schema:assignmentSchema,resource:caseResource,handler:assignCase};
+  if(operation==="team"&&method==="GET")definition={action:"assign_case",resource:caseResource,handler:async({db,caseId})=>db.select({id:s.users.id,name:s.users.name,role:s.users.role}).from(s.users).innerJoin(s.caseMembers,eq(s.caseMembers.userId,s.users.id)).where(and(eq(s.caseMembers.caseId,caseId!),eq(s.users.role,"clinician")))};
+  if(operation==="packet"&&method==="GET")definition={action:"read_packet",resource:caseResource,handler:readApprovedPacket};
   if(operation==="documents"&&method==="GET")definition=caseRead(async({db,caseId})=>db.select({id:s.documents.id,type:s.documents.type,title:s.documents.title,author:s.documents.author,serviceDate:s.documents.serviceDate,version:s.documents.version,verificationState:s.documents.verificationState,receivedAt:s.documents.receivedAt}).from(s.documents).where(eq(s.documents.caseId,caseId!)).orderBy(asc(s.documents.receivedAt)));
   if(operation==="documents"&&method==="POST")definition={action:"upload_document",write:true,upload:true,schema:uploadSchema,resource:caseResource,handler:uploadDocument};
   if(operation==="runs"&&method==="POST")definition={action:"start_run",write:true,schema:z.object({}).strict(),resource:caseResource,handler:async({db,user,caseId})=>startGroup(db,caseId!,user.userId,deps.env)};

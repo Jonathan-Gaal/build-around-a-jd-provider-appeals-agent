@@ -1,3 +1,4 @@
 import type { ReactNode } from "react";
-import { RolePreviewProvider } from "@/components/role-preview-context";
-export default function Layout({ children }: { children: ReactNode }) { return <RolePreviewProvider>{children}</RolePreviewProvider>; }
+import { requirePageRole } from "@/lib/auth/page-access";
+import { ROLES } from "@/lib/auth/roles";
+export default async function Layout({ children }: { children: ReactNode }) { await requirePageRole(ROLES); return children; }

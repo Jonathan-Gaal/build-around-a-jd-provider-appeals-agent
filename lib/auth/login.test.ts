@@ -28,8 +28,8 @@ describe("demo credential authorization", () => {
     const scenarios: { credentials: Record<string, string>; account: string; role: string }[] = [
       { credentials: {}, account: "clinician_a", role: "clinician" },
       { credentials: { clinician_a: goodCredential }, account: "unknown", role: "clinician" },
-      { credentials: { clinician_a: goodCredential }, account: "clinician_a", role: "supervisor" },
-      { credentials: { clinician_a: goodCredential }, account: "clinician_a", role: "coordinator" },
+      { credentials: { clinician_a: goodCredential }, account: "clinician_a", role: "admin" },
+      { credentials: { clinician_a: goodCredential }, account: "clinician_a", role: "Clinician" },
     ];
     for (const scenario of scenarios) {
       const store = new FakeLoginStore();
@@ -37,6 +37,12 @@ describe("demo credential authorization", () => {
       expect(await attemptLogin(store, { account: scenario.account, credential: goodCredential, role: "clinician", userId: "u-a" }, "ip", { demoCredentials: scenario.credentials }, now)).toEqual({ status: "invalid" });
       expect(store.events).toEqual([{ outcome: "refused", reasonCode: "invalid_credentials", userId: undefined }]);
     }
+  });
+
+  it.each(["clinician", "coordinator", "supervisor", "packet_staff"])("authenticates configured %s identity using the database role, ignoring a submitted role", async role => {
+    const store = new FakeLoginStore();
+    store.users.set("clinician_a", { ...user, role });
+    expect(await attemptLogin(store, { account: "clinician_a", credential: goodCredential, role: "admin" }, "ip", env, now)).toEqual({ status: "ok", user: { ...user, role } });
   });
 
   it.each([undefined, "", "short", `${goodCredential}x`])("rejects absent, short and mismatched configured credentials", (expected) => {
