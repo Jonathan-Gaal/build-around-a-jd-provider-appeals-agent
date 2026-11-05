@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CODE_CLAIM_AUTHOR } from "@/lib/validation/period-facts";
 import Link from "next/link";
 import { WorkflowNotice, WorkflowStatus, WorkflowPanel, WorkflowHighlight } from "./workflow-motion";
 import { ApiError, readApi, writeApi } from "@/lib/client/api";
@@ -39,7 +40,7 @@ function PageHeading({ eyebrow, title, description, night }: { eyebrow: string; 
 }
 
 function ClaimBadge({ claim, night }: { claim: Claim; night: boolean }) {
-  const verified = claim.displayStatus === "source_verified" && claim.evidence.length > 0;
+  const verified = claim.displayStatus === "source_verified" && (claim.evidence.length > 0 || claim.author === CODE_CLAIM_AUTHOR);
   const label = claim.status === "rejected" ? "Rejected · Excluded" : claim.displayStatus === "clinician_approved" ? "Clinician signed off" : claim.displayStatus === "clinician_edited" ? "Clinician edited" : verified ? "Source verified" : "Unsupported · review";
   return <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${verified || claim.displayStatus === "clinician_approved" ? night ? "bg-[#27533b] text-[#c2e7c9]" : "bg-[#e6f2e7] text-[#326a47]" : night ? "bg-[#58452b] text-[#f4d9a8]" : "bg-[#f8efdf] text-[#90662c]"}`}>{label}</span>;
 }
