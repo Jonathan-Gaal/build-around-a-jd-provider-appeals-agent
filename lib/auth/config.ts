@@ -9,7 +9,7 @@ import { getDb } from "../db";
 import { writeAudit } from "../audit/write";
 import { authorizeDemoLogin } from "./login";
 import type { SessionUser } from "./access";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { users } from "../db/schema";
 import { isRole } from "./roles";
 
@@ -18,10 +18,16 @@ declare module "next-auth" {
   interface Session { user: { id: string; role: string } & DefaultSession["user"] }
 }
 declare module "next-auth/jwt" {
-  interface JWT { userId?: string; role?: string }
+  interface JWT { userId?: string; role?: string; sessionVersion?: number }
 }
 
 class LoginThrottled extends CredentialsSignin { code = "login_throttled"; }
+
+// A token is live only while its session version matches the account's. Sign-out bumps the version,
+// so a copied token stops working even though the browser cookie is already gone.
+export function isLiveAccount(current: { role: string; sessionVersion: number } | undefined, tokenVersion: number | undefined): boolean {
+  return !!current && isRole(current.role) && tokenVersion === current.sessionVersion;
+}
 
 export function loginIp(request: Request, env: Pick<Env, "VERCEL">): string {
   // Vercel overwrites this header. Else use a shared bucket rather than trust caller-supplied IPs.
@@ -46,16 +52,20 @@ export function createAuthConfig(env: Env): NextAuthConfig {
     })],
     callbacks: {
       async jwt({ token, user }) {
-        if (user) { token.userId = user.id; token.role = user.role; }
+        if (user?.id) {
+          const [account] = await getDb().select({ sessionVersion: users.sessionVersion }).from(users).where(eq(users.id, user.id));
+          token.userId = user.id; token.role = user.role; token.sessionVersion = account?.sessionVersion;
+        }
         return token;
       },
       async session({ session, token }) {
         // Re-read identity and role: an old JWT cannot retain a revoked role or deleted account.
         const [current] = typeof token.userId === "string" ? await getDb().select().from(users).where(eq(users.id, token.userId)) : [];
-        session.user.id = current && isRole(current.role) ? current.id : "";
-        session.user.role = current && isRole(current.role) ? current.role : "";
-        session.user.name = current?.name ?? null;
-        session.user.email = current?.email ?? null;
+        const live = isLiveAccount(current, token.sessionVersion);
+        session.user.id = live ? current.id : "";
+        session.user.role = live ? current.role : "";
+        session.user.name = live ? current.name : null;
+        session.user.email = live ? current.email : "";
         return session;
       },
       async redirect({ url }) {
@@ -65,6 +75,15 @@ export function createAuthConfig(env: Env): NextAuthConfig {
           if (target.origin === origin) return target.href;
         } catch { /* Invalid redirect falls back to configured origin. */ }
         return origin;
+      },
+    },
+    events: {
+      // Sign-out revokes every token issued to this account, including copies, by bumping its version.
+      async signOut(message) {
+        const userId = "token" in message && typeof message.token?.userId === "string" ? message.token.userId : null;
+        if (!userId) return;
+        await getDb().update(users).set({ sessionVersion: sql`${users.sessionVersion} + 1` }).where(eq(users.id, userId));
+        await writeAudit(getDb(), { actor: userId, actorType: "user", action: "sign_out", objectType: "authentication", outcome: "success" });
       },
     },
     // Auth.js errors can include request internals; privacy-safe audit is persisted by login.ts.
