@@ -22,8 +22,10 @@
  *
  * Run it: `npx tsx scripts/run-clinical-documentation.ts` (see docs/architecture/reference-agent.md).
  */
+import { LIMITS } from "../config/limits";
 import { z } from "zod";
 import { formatDocuments, type SourceDocument } from "../harness/documents";
+import { wrapUntrusted } from "../harness/untrusted";
 import { Gap, Quote, SHARED_RULES } from "./shared";
 import type { AgentDef } from "./types";
 
@@ -60,12 +62,12 @@ export const Fact = z.object({
   category: z.enum(FACT_CATEGORIES),
   statement: z
     .string()
-    .describe("One neutral sentence stating what the record says. No judgment about necessity."),
+    .describe("One neutral sentence stating one finding from the record. Never combine unrelated findings, such as a diagnosis and vital signs. No judgment about necessity."),
   serviceDate: z
     .string()
     .nullable()
     .describe("ISO date the fact applies to, copied from the document's service_date, or null"),
-  quotes: z.array(Quote).min(1).describe("One to three exact quotes that support the statement"),
+  quotes: z.array(Quote).min(1).describe("One to three exact quotes that support the statement. Each quote is one unbroken span copied exactly; for two separated sentences, use two quotes, never one quote that skips text between them"),
 });
 export type Fact = z.infer<typeof Fact>;
 
@@ -120,6 +122,7 @@ What counts as a fact, by category:
 
 How to work:
 - Prefer the most recent documentation. If documents disagree, extract both facts and add a gap describing the conflict.
+- One finding per fact: never combine unrelated findings (a diagnosis with vital signs, or a symptom with a medication) in one statement or one fact; use separate facts.
 - Keep each statement neutral and specific ("Patient reported passive suicidal ideation without plan on 2026-11-03"), not evaluative ("Patient is high risk").
 - The user message includes a date coverage table computed by code. Treat it as correct. For each day with hasNote=false, add a gap with severity "high".
 - Also add gaps for: missing risk assessment in the latest note, no documented discharge plan, missing or unsigned treatment plan, vague notes that do not describe current status.
@@ -131,9 +134,7 @@ How to work:
 function buildPrompt(input: ClinicalDocumentationInput): string {
   const coverage = computeDateCoverage(input);
   return [
-    `Case: ${input.caseId}`,
-    `Level of care: ${input.levelOfCare}`,
-    `Review period: ${input.reviewPeriod.start} to ${input.reviewPeriod.end}`,
+    wrapUntrusted("db_text", [["kind", "case_context"]], JSON.stringify({ caseId: input.caseId, levelOfCare: input.levelOfCare, reviewPeriod: input.reviewPeriod })),
     "",
     "Progress note coverage (computed by code, authoritative):",
     ...coverage.map((c) => `- ${c.date}: ${c.hasNote ? "note present" : "NO NOTE"}`),
@@ -147,12 +148,12 @@ function buildPrompt(input: ClinicalDocumentationInput): string {
 // ---------------------------------------------------------------------------
 export const clinicalDocumentationAgent: AgentDef<ClinicalDocumentationInput, ClinicalDocumentationOutput> = {
   name: "clinical-documentation",
-  version: "1.0.0",
+  version: "1.5.0",
   system: SYSTEM,
   output: ClinicalDocumentationOutput,
   buildPrompt,
   extractQuotes: (out) => out.facts.flatMap((f) => f.quotes),
-  maxTokens: 8000,
+  maxTokens: LIMITS.AGENT_MAX_OUTPUT_TOKENS,
   timeoutMs: 60_000, // PRD section 8: 60-second timeout per call, one retry
   maxRetries: 1,
 };

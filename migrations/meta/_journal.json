@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793823151258,
+      "tag": "0000_lethal_kingpin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793823259747,
+      "tag": "0001_damp_random",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793850141955,
+      "tag": "0002_role_membership_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793905419982,
+      "tag": "0003_kind_warbird",
+      "breakpoints": true
+    }
+  ]
+}

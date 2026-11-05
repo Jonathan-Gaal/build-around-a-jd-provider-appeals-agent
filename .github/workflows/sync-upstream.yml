@@ -1,4 +1,4 @@
-# Keeps this repo's main in step with the shared team repo (Umer's).
+# Keeps this repo's main in step with the shared team repo's development branch (Umer's).
 # Runs every 3 hours and on demand (Actions tab > Sync from shared repo > Run workflow).
 # Only runs in Jonathan's repo; it does nothing if this file ever lands in the shared repo.
 name: Sync from shared repo
@@ -19,16 +19,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Merge shared repo main
+      - name: Merge shared repo development
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote add upstream https://github.com/umerbashir-del/Umer-Johnathan-JD-repo.git
-          git fetch upstream main
-          if git merge-base --is-ancestor upstream/main HEAD; then
+          git fetch upstream development
+          if git merge-base --is-ancestor upstream/development HEAD; then
             echo "Already up to date with the shared repo."
             exit 0
           fi
-          # Fails loudly (red run, email) on a conflict instead of guessing. Fix locally with: git pull upstream main
-          git merge --no-edit upstream/main
+          # Fails loudly (red run, email) on a conflict instead of guessing. Fix locally with: git pull upstream development
+          git merge --no-edit upstream/development
           git push origin HEAD:main
