@@ -13,7 +13,7 @@ import {withCaseLock} from "../cases/lock";
 import {runAgent,type AgentRunRecord,type RunAgentOptions} from "../harness/run-agent";
 import type {SourceDocument} from "../harness/documents";
 import {clinicalDocumentationAgent,computeDateCoverage,type Fact} from "../agents/clinical-documentation";
-import {caseAssemblyAgent,type CaseAssemblyInput} from "../agents/case-assembly";
+import {caseAssemblyAgent,PERIOD_FACT_IDS,type CaseAssemblyInput} from "../agents/case-assembly";
 import {independentQualityAgent} from "../agents/independent-quality";
 import {acceptDraftClaims,findDuplicateIds,mergeChecks,reportChecks,acceptQualityIssues} from "./accept/accept";
 import {scanAgentOutput} from "./accept/boundary";
@@ -104,10 +104,12 @@ export async function executeGroup(db:Database,groupId:string,options:ExecutionO
    throw new Error("duplicate_fact_ids");
   }
   const verifiedFacts=new Set(clinical.output.facts.filter(fact=>!duplicateIds.includes(fact.id)&&fact.quotes.length>0&&verifyQuotes(fact.quotes,documents).every(q=>q.status==="verified")).map(fact=>fact.id));
+  // Period facts come from code's reading of the source documents, not from a model quote.
+  verifiedFacts.add(PERIOD_FACT_IDS.requested);verifiedFacts.add(PERIOD_FACT_IDS.authorized);
   const verifiedQuotes=clinical.output.facts.filter(fact=>verifiedFacts.has(fact.id)).flatMap(fact=>fact.quotes.map(q=>q.text));
   const checks:CaseAssemblyInput["checks"]=[{name:"fact_ids",result:duplicateIds.length?"fail":"pass",detail:"Fact IDs must be unique.",affected:[]},{name:"quote_support",result:clinical.status==="needs_review"?"fail":"pass",detail:"Every extracted fact quote must verify.",affected:[]}];
   if(scanAgentOutput(clinical.output,verifiedQuotes).flagged)checks.push({name:"clinical_boundary",result:"fail",detail:"Clinical boundary language found.",affected:[]});
-  const assemblyInput:CaseAssemblyInput={documents,facts:clinical.output.facts,gaps:clinical.output.gaps,requestedPeriod:{start:period.requestedStart,end:period.requestedEnd,sourceDocumentId:period.sourceDocumentId},authorizedPeriod:{start:auth.approvedStart,end:auth.approvedEnd,sourceDocumentId:auth.sourceDocumentId},checks};
+  const assemblyInput:CaseAssemblyInput={documents,facts:clinical.output.facts,gaps:clinical.output.gaps,requestedPeriod:{id:PERIOD_FACT_IDS.requested,start:period.requestedStart,end:period.requestedEnd,sourceDocumentId:period.sourceDocumentId},authorizedPeriod:{id:PERIOD_FACT_IDS.authorized,start:auth.approvedStart,end:auth.approvedEnd,sourceDocumentId:auth.sourceDocumentId},checks};
   await beginAgent(agents[1]);
   const draft=await runAgent(caseAssemblyAgent,assemblyInput,opts(agents[1]));
   if(!draft.output)throw new Error(draft.errorKind??"agent_failed");

@@ -7,8 +7,8 @@ const input: CaseAssemblyInput = {
   documents: [{ id: "note-1", version: 1, type: "progress_note", title: "Note", content: "Patient attended group.", serviceDate: "2026-11-03" }],
   facts: [{ id: "f1", category: "engagement", statement: "Patient attended group.", serviceDate: "2026-11-03", quotes: [{ documentId: "note-1", text: "Patient attended group." }] }],
   gaps: [{ item: "Missing note", why: "No note for November 2", severity: "high" }],
-  requestedPeriod: { start: "2026-11-04", end: "2026-11-06", sourceDocumentId: "request" },
-  authorizedPeriod: { start: "2026-11-01", end: "2026-11-03", sourceDocumentId: "auth" },
+  requestedPeriod: { id: "period-requested", start: "2026-11-04", end: "2026-11-06", sourceDocumentId: "request" },
+  authorizedPeriod: { id: "period-authorized", start: "2026-11-01", end: "2026-11-03", sourceDocumentId: "auth" },
   checks: [{ name: "date_conflict", result: "fail", detail: "Requested dates extend past authorization", affected: [] }],
 };
 const draft = {
@@ -29,7 +29,7 @@ describe("MVP packet agent contracts", () => {
   it("requires check fields and refuses issues outside the MVP allowlist", () => {
     const quality = {
       checks: [{ name: "support", result: "fail", detail: "Unquoted statement", affected: ["claim-1"] }],
-      issues: [{ type: "missing_document", severity: "major", blocking: true, description: "Missing November 2 note", sendBackTo: "clinical-documentation" }],
+      issues: [{ type: "missing_document", severity: "major", blocking: true, description: "Missing November 2 note", requiredDocumentType: "progress_note", serviceDate: "2026-11-02", sendBackTo: "clinical-documentation" }],
     };
     expect(IndependentQualityOutput.parse(quality)).toEqual(quality);
     for (const type of ["unsupported_claim", "approve_now", "other"]) {
@@ -42,8 +42,8 @@ describe("MVP packet agent contracts", () => {
 
   it("passes both source periods and original documents without reconciling dates", () => {
     const prompt = caseAssemblyAgent.buildPrompt(input);
-    expect(prompt).toContain('"requestedPeriod":{"start":"2026-11-04","end":"2026-11-06","sourceDocumentId":"request"}');
-    expect(prompt).toContain('"authorizedPeriod":{"start":"2026-11-01","end":"2026-11-03","sourceDocumentId":"auth"}');
+    expect(prompt).toContain('"requestedPeriod":{"id":"period-requested","start":"2026-11-04","end":"2026-11-06","sourceDocumentId":"request"}');
+    expect(prompt).toContain('"authorizedPeriod":{"id":"period-authorized","start":"2026-11-01","end":"2026-11-03","sourceDocumentId":"auth"}');
     expect(prompt).toContain('"result":"fail"');
     expect(prompt).toContain('<document id="note-1"');
     expect(prompt).toContain("Patient attended group.");

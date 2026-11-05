@@ -4,7 +4,11 @@ import { scanText } from './boundary';
 
 export type AcceptContext = { caseId: string; agentName: string; agentRunId: string; verifiedFactIds: ReadonlySet<string>; verifiedQuotes: readonly string[]; runAgentNames: ReadonlySet<string> };
 export type ClaimDraft = { caseId: string; agentRunId: string; author: string; sectionHeading: string; position: number; text: string; type: 'clinical_fact' | 'narrative'; sourceKind: 'direct_quote' | 'extracted_fact' | 'agent_synthesis'; status: 'source_verified' | 'unsupported'; material: true; factIds: string[]; boundaryFlagged: boolean; originalText: null };
-export type IssueDraft = { caseId: string; type: IssueType; severity: IssueSeverity; blocking: boolean; status: 'open'; source: string; sourceRunId: string; description: string; ownerId: null; dedupeKey: string; sendBackTo: string | null };
+export type IssueDraft = { caseId: string; type: IssueType; severity: IssueSeverity; blocking: boolean; status: 'open'; source: string; sourceRunId: string; description: string; ownerId: null; dedupeKey: string; sendBackTo: string | null; requiredDocumentType: 'progress_note' | null; requiredServiceDate: string | null };
+
+// Model-named notes are keyed like the code's own progress-note issues, so a rerun cannot open a second copy.
+const KEYED_DOCUMENT_TYPE = 'progress_note';
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 export type Check = { name: string; result: CheckResult; origin: 'code' | 'model'; affected?: readonly string[] };
 
 export function findDuplicateIds(items: ReadonlyArray<{ id: string }>): string[] {
@@ -41,10 +45,19 @@ export function acceptQualityIssues(issues: ReadonlyArray<Record<string, unknown
     const severity = ISSUE_SEVERITIES.find((value) => value === issue.severity) ?? 'critical';
     const description = typeof issue.description === 'string' ? issue.description : '';
     const sendBackTo = typeof issue.sendBackTo === 'string' && ctx.runAgentNames.has(issue.sendBackTo) ? issue.sendBackTo : null;
+    const requiredDocumentType = issue.requiredDocumentType === KEYED_DOCUMENT_TYPE ? KEYED_DOCUMENT_TYPE : null;
+    const requiredServiceDate = typeof issue.serviceDate === 'string' && ISO_DATE.test(issue.serviceDate) ? issue.serviceDate : null;
     return { caseId: ctx.caseId, type, severity, blocking: issue.blocking !== false, status: 'open', source: ctx.agentName,
-      sourceRunId: ctx.agentRunId, description, ownerId: null,
-      dedupeKey: `${ctx.agentName}:${type}:${createHash('sha256').update(description).digest('hex').slice(0, 16)}`, sendBackTo };
+      sourceRunId: ctx.agentRunId, description, ownerId: null, requiredDocumentType, requiredServiceDate,
+      dedupeKey: qualityDedupeKey(ctx.agentName, type, requiredDocumentType, requiredServiceDate, description), sendBackTo };
   });
+}
+
+// Wording changes between runs, so the key comes from what is missing, not from the sentence.
+function qualityDedupeKey(agentName: string, type: IssueType, documentType: string | null, serviceDate: string | null, description: string): string {
+  if (type === 'missing_document' && documentType && serviceDate) return `missing_document:${documentType}:${serviceDate}`;
+  if (type === 'date_conflict') return `${agentName}:date_conflict`;
+  return `${agentName}:${type}:${createHash('sha256').update(description).digest('hex').slice(0, 16)}`;
 }
 
 /**

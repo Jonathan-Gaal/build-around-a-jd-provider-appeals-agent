@@ -67,7 +67,7 @@ export const Fact = z.object({
     .string()
     .nullable()
     .describe("ISO date the fact applies to, copied from the document's service_date, or null"),
-  quotes: z.array(Quote).min(1).describe("One to three exact quotes that support the statement"),
+  quotes: z.array(Quote).min(1).describe("One to three exact quotes that support the statement. Each quote is one unbroken span copied exactly; for two separated sentences, use two quotes, never one quote that skips text between them"),
 });
 export type Fact = z.infer<typeof Fact>;
 
@@ -147,7 +147,7 @@ function buildPrompt(input: ClinicalDocumentationInput): string {
 // ---------------------------------------------------------------------------
 export const clinicalDocumentationAgent: AgentDef<ClinicalDocumentationInput, ClinicalDocumentationOutput> = {
   name: "clinical-documentation",
-  version: "1.3.0",
+  version: "1.4.0",
   system: SYSTEM,
   output: ClinicalDocumentationOutput,
   buildPrompt,

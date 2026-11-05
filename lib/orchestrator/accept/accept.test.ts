@@ -56,6 +56,25 @@ describe('accept output', () => {
     // node -e "console.log(require('crypto').createHash('sha256').update('hello').digest('hex').slice(0,16))"
     expect(acceptQualityIssues([{ description: 'hello' }], ctx)[0].dedupeKey).toBe('drafting:other:2cf24dba5fb0a30e');
   });
+  it('keys a missing note by what is missing, so rewording cannot open a second copy', () => {
+    const [first] = acceptQualityIssues([{ type: 'missing_document', description: 'Progress note for Nov 2 absent', requiredDocumentType: 'progress_note', serviceDate: '2026-11-02' }], ctx);
+    const [reworded] = acceptQualityIssues([{ type: 'missing_document', description: 'No note on file for 11/02', requiredDocumentType: 'progress_note', serviceDate: '2026-11-02' }], ctx);
+    expect(first).toMatchObject({ dedupeKey: 'missing_document:progress_note:2026-11-02', requiredDocumentType: 'progress_note', requiredServiceDate: '2026-11-02' });
+    expect(reworded.dedupeKey).toBe(first.dedupeKey);
+  });
+  it('keeps one open date conflict per agent whatever the wording', () => {
+    const [first] = acceptQualityIssues([{ type: 'date_conflict', description: 'Request runs past approval' }], ctx);
+    const [reworded] = acceptQualityIssues([{ type: 'date_conflict', description: 'Requested days exceed authorized days' }], ctx);
+    expect(first.dedupeKey).toBe('drafting:date_conflict');
+    expect(reworded.dedupeKey).toBe(first.dedupeKey);
+  });
+  it('falls back to a description key when the model names a bad type or date', () => {
+    const [malformed] = acceptQualityIssues([{ type: 'missing_document', description: 'x', requiredDocumentType: 'policy', serviceDate: 'Nov 2' }], ctx);
+    const [bare] = acceptQualityIssues([{ type: 'missing_document', description: 'x' }], ctx);
+    expect(malformed).toMatchObject({ requiredDocumentType: null, requiredServiceDate: null });
+    expect(malformed.dedupeKey).toBe(bare.dedupeKey);
+    expect(malformed.dedupeKey).toMatch(/^drafting:missing_document:/);
+  });
   it('model passes never clear code failure, ties favour code', () => {
     expect(mergeChecks([{ name: 'date_coverage', result: 'fail', origin: 'code' }], [{ name: 'date_coverage', result: 'pass', origin: 'model' }, { name: 'dates_consistent', result: 'fail', origin: 'model' }])).toEqual([{ name: 'date_coverage', result: 'fail', origin: 'code' }, { name: 'dates_consistent', result: 'fail', origin: 'model' }]);
     expect(mergeChecks([{ name: 'b', result: 'needs_review', origin: 'code' }], [{ name: 'b', result: 'needs_review', origin: 'model' }, { name: 'a', result: 'fail', origin: 'model' }])).toEqual([{ name: 'a', result: 'fail', origin: 'model' }, { name: 'b', result: 'needs_review', origin: 'code' }]);
