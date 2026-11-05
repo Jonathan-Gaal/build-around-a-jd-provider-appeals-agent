@@ -7,8 +7,6 @@ import { SHARED_RULES, type Gap } from "./shared";
 import type { AgentDef } from "./types";
 
 // 1. Input: callers supply facts, periods and code checks; agents never derive them.
-// Code computes the two periods from source documents, so they carry fixed fact IDs the code treats as verified.
-export const PERIOD_FACT_IDS = { requested: "period-requested", authorized: "period-authorized" } as const;
 export interface CaseAssemblyInput {
   documents: SourceDocument[];
   facts: Fact[];
