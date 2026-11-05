@@ -30,7 +30,7 @@ export type DocumentDetail = DocumentSummary & { content: string; origin: string
 export type EvidenceSpan = { id: string; documentId: string; startOffset: number; endOffset: number; excerpt: string; method: string };
 export type Claim = {
   id: string; packetVersionId: string; text: string; sectionHeading: string; position: number; status: string; displayStatus: string;
-  sourceKind: string; material: boolean; boundaryFlagged: boolean; evidence: EvidenceSpan[];
+  author: string; sourceKind: string; material: boolean; boundaryFlagged: boolean; evidence: EvidenceSpan[];
 };
 export type Issue = {
   id: string; type: "missing_document" | "date_conflict" | "unsupported_claim" | "stale_policy" | "extraction_uncertain" | "insurer_objection" | "other"; severity: string; blocking: boolean;
