@@ -56,6 +56,8 @@ export async function executeRoute(request:Request,definition:RouteDefinition,de
   }
   if(definition.resource){
    if(definition.resource.kind!=="case"&&!z.uuid().safeParse(definition.resource.id).success)throw new HttpError(404,"not_found");
+   // Postgres rejects a NUL in text; a control character can't be a case ID, so answer not found before querying.
+   if(/[\u0000-\u001f\u007f]/.test(definition.resource.id))throw new HttpError(404,"not_found");
    if(definition.resource.kind!=="case")safeObjectId=definition.resource.id;
    const resolvedCaseId=await resolveCase(db,definition.resource);
    if(!resolvedCaseId)throw new HttpError(404,"not_found");

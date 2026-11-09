@@ -31,6 +31,18 @@ describe("route authorization boundary", () => {
     expect(events).toEqual(["session", "session"]);
   });
 
+  it("answers a case ID with a control character as not found without querying", async () => {
+    const events: string[] = [];
+    const db = new Proxy({}, { get() { events.push("database"); throw new Error("database_must_not_be_touched"); } }) as Database;
+    const definition: RouteDefinition = { action: "read_case", resource: { kind: "case", id: "UR\u00001042" }, handler: async () => { events.push("handler"); return {}; } };
+    const response = await executeRoute(new Request("https://example.test/api/cases/UR%001042"), definition, {
+      db, env, session: async () => ({ userId: "u-a", role: "clinician" }),
+    });
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: { code: "not_found" } });
+    expect(events).toEqual([]);
+  });
+
   it("caps actual UTF-8 body bytes independently of a forged Content-Length", async () => {
     await expect(readBody(new Request("https://example.test", { method: "POST", headers: { "content-length": "1" }, body: '"éé"' }), 5)).rejects.toMatchObject({ status: 413, code: "body_too_large" });
     expect(await readBody(new Request("https://example.test", { method: "POST", body: '"é"' }), 4)).toBe("é");

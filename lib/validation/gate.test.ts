@@ -6,11 +6,17 @@ const ready: GateSnapshot = {
   documents: [{ id: 'auth', type: 'authorization_record', serviceDate: null, verificationState: 'verified' }, { id: 'request', type: 'authorization_record', serviceDate: null, verificationState: 'verified' }, ...['01', '02', '03'].map((day) => ({ id: `note-${day}`, type: 'progress_note' as const, serviceDate: `2026-11-${day}`, verificationState: 'verified' as const }))],
   authorizationDocumentId: 'auth', requestDocumentId: 'request', stay: { start: '2026-11-01', end: '2026-11-03' },
   claims: [{ id: 'claim', included: true, material: true, status: 'source_verified', boundaryFlagged: false }], checks: [{ name: 'coverage', result: 'pass' }],
-  hash: { stored: 'abc', recomputed: 'abc', requested: 'abc' },
+  hash: { stored: 'abc', recomputed: 'abc', requested: 'abc' }, documentsAfterRun: [],
 };
 const claimGate = (changes: Partial<GateSnapshot['claims'][number]>) => evaluateGate({ ...ready, claims: [{ ...ready.claims[0], ...changes }] });
 describe('approval gate', () => {
   it('allows a fully sourced, complete packet', () => expect(evaluateGate(ready)).toEqual([]));
+  it('blocks a document received after the latest run until a new run reads it', () => {
+    expect(evaluateGate({ ...ready, documentsAfterRun: ['late-b', 'late-a'] })).toEqual([
+      { code: 'run_incomplete', message: BLOCKER_MESSAGES.run_incomplete, objectType: 'document', objectId: 'late-a' },
+      { code: 'run_incomplete', message: BLOCKER_MESSAGES.run_incomplete, objectType: 'document', objectId: 'late-b' },
+    ]);
+  });
   it('blocks the initial missing note and cannot be cleared by model pass', () => {
     const snapshot: GateSnapshot = { ...ready, documents: ready.documents.filter((document) => document.id !== 'note-02'), issues: [{ id: 'i-note', blocking: true, status: 'open' }] };
     const expected = [{ code: 'open_blocking_issue', objectType: 'issue', objectId: 'i-note', message: BLOCKER_MESSAGES.open_blocking_issue }, { code: 'date_coverage_gap', objectType: 'date', objectId: '2026-11-02', message: BLOCKER_MESSAGES.date_coverage_gap }];

@@ -56,7 +56,7 @@ export async function runEvaluation(fixtureDirectory = path.join(process.cwd(), 
   assert.equal(unsupportedResult.quoteChecks[0].status, "unsupported");
 
   const snapshot: GateSnapshot = {
-    asOfDate: input.asOf, latestRunGroupStatus: "complete",
+    asOfDate: input.asOf, latestRunGroupStatus: "complete", documentsAfterRun: [],
     issues: [{ id: "missing-note", blocking: true, status: "open" }, { id: "date-conflict", blocking: true, status: "open" }],
     documents: initial.documents.map((document) => ({ id: document.id, type: document.type, serviceDate: document.serviceDate ?? null, verificationState: "verified" })),
     authorizationDocumentId: fixtureId(caseId, "auth-record.md"), requestDocumentId: fixtureId(caseId, "request.md"), stay,
