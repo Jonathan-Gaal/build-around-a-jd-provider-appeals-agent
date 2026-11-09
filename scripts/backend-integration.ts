@@ -213,6 +213,15 @@ async function main(){
  await okay("PATCH",`claims/${claimRows[0].id}`,{text:"Clinician reviewed the documented symptoms."});
  const changed=(await okay("GET","cases/UR-1042")).latestPacketVersion;assert.notEqual(changed.id,before.id);
  const [invalidated]=await db.select().from(s.approvals).where(eq(s.approvals.id,approvals[0].id));assert.equal(invalidated.status,"invalidated");
+ // A document received after the run cancels the sign-off and blocks a new one until a run reads it.
+ validation=await okay("GET","cases/UR-1042/validation");assert.deepEqual(validation.blockers,[],JSON.stringify(validation));
+ const signedOff=await okay("POST","cases/UR-1042/approve",{...approvalBody,packetVersionId:validation.packetVersionId,contentHash:validation.contentHash});assert.equal(signedOff.status,"valid");
+ const lateCopy=await okay("POST","cases/UR-1042/documents",{type:"progress_note",title:"Duplicate",content:note.body});
+ const [cancelled]=await db.select().from(s.approvals).where(eq(s.approvals.id,signedOff.id));assert.equal(cancelled.status,"invalidated","a newer source cancels the sign-off");
+ assert.notEqual((await okay("GET","cases/UR-1042")).status,"approved_for_submission");
+ validation=await okay("GET","cases/UR-1042/validation");
+ assert(validation.blockers.some((b:{code:string;objectId?:string})=>b.code==="run_incomplete"&&b.objectId===lateCopy.id),JSON.stringify(validation.blockers));
+ assert.equal((await api("POST","cases/UR-1042/approve",{...approvalBody,packetVersionId:validation.packetVersionId,contentHash:validation.contentHash})).status,409);
  const foreign=randomUUID();await db.insert(s.users).values({id:foreign,accountKey:`test-${foreign}`,email:`${foreign}@example.test`,name:"Test Clinician",role:"clinician"});actor={userId:foreign,role:"clinician"};
  for(const [method,path,body] of [["GET","cases/UR-1042"],["GET","cases/UR-1042/documents"],["GET","cases/UR-1042/claims"],["GET","cases/UR-1042/issues"],["GET","cases/UR-1042/validation"],["GET",`documents/${uploaded.id}`],["GET",`runs/${first.runGroupId}`],["POST",`documents/${uploaded.id}/verify`,{decision:"verified"}],["PATCH",`claims/${claimRows[0].id}`,{text:"probe"}],["POST",`issues/${missing.id}/resolve`,{resolution:"attach_document",reason:"probe",evidenceDocumentId:uploaded.id}],["POST","cases/UR-1042/runs",{}],["POST","cases/UR-1042/approve",approvalBody]] as const){const response=await api(method,path,body);assert.equal(response.status,404,`${method} ${path}`);}
  assert.deepEqual(await okay("GET","cases"),[]);actor={userId:DEMO_USER_ID,role:"clinician"};
@@ -229,6 +238,6 @@ async function main(){
  await assert.rejects(db.transaction(async tx=>{await tx.execute(sql`SET LOCAL ROLE app_rw`);await tx.delete(s.auditEvents);}));
  await testInvariantChecks(db);await testSameCaseConstraints(db);
  await testSpendLedger(db);await testApproval(db);await testAuth(db);
- console.log(JSON.stringify({status:"passed",mode:"fake-client + real PostgreSQL",liveModelCalls:0,checks:["idempotent seed","full UR-1042 flow","source-linked approval","concurrent approval","identical rerun","duplicate execution","immutable history","cross-case routes","failed run skips","stale sweep on poll, case read, gate and approval","late worker cannot undo sweep","failed quote clears only by clinician action","period IDs verify nothing","period claims written by code","model issues never block","model finding cannot suppress a code blocker","audit trigger","document grants","invariant checks","same-case foreign keys","spend concurrency","auth throttle"]},null,2));
+ console.log(JSON.stringify({status:"passed",mode:"fake-client + real PostgreSQL",liveModelCalls:0,checks:["idempotent seed","full UR-1042 flow","source-linked approval","concurrent approval","newer source cancels and blocks sign-off","identical rerun","duplicate execution","immutable history","cross-case routes","failed run skips","stale sweep on poll, case read, gate and approval","late worker cannot undo sweep","failed quote clears only by clinician action","period IDs verify nothing","period claims written by code","model issues never block","model finding cannot suppress a code blocker","audit trigger","document grants","invariant checks","same-case foreign keys","spend concurrency","auth throttle"]},null,2));
 }
 main().finally(()=>pool.end());
