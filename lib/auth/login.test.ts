@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attemptLogin, credentialMatches, loginKey, recordLoginFailure, type LoginAttemptStore, type LoginUser, type ThrottleState } from "./login";
+import { attemptLogin, credentialMatches, loginKey, recordLoginFailure, throttleKeys, type LoginAttemptStore, type LoginUser, type ThrottleState } from "./login";
 
 const goodCredential = "synthetic-test-credential-123";
 const user: LoginUser = { id: "u-a", name: "Synthetic Clinician", email: "clinician@example.test", role: "clinician" };
@@ -21,7 +21,7 @@ describe("demo credential authorization", () => {
     const store = new FakeLoginStore();
     expect(await attemptLogin(store, { account: "clinician_a", credential: goodCredential }, "127.0.0.1", env, now)).toEqual({ status: "ok", user });
     expect(store.events).toEqual([{ outcome: "success", reasonCode: "login_succeeded", userId: "u-a" }]);
-    expect(store.states.get(loginKey("account", "clinician_a"))).toEqual({ failureTimes: [], blockedUntil: null });
+    expect(store.states.get(throttleKeys("clinician_a", "127.0.0.1").accountKey)).toEqual({ failureTimes: [], blockedUntil: null });
   });
 
   it("has no default credential or local role switch", async () => {
@@ -62,15 +62,23 @@ describe("demo credential authorization", () => {
       expect(await attemptLogin(store, { account: "clinician_a", credential: "wrong" }, "ip", env, now)).toEqual({ status: "invalid" });
     }
     expect(await attemptLogin(store, { account: "clinician_a", credential: "wrong" }, "ip", env, now)).toEqual({ status: "throttled", retryAfterSeconds: 900 });
-    expect(await attemptLogin(store, { account: "clinician_a", credential: goodCredential }, "different-ip", env, new Date(now.getTime() + 899_000))).toEqual({ status: "throttled", retryAfterSeconds: 1 });
+    expect(await attemptLogin(store, { account: "clinician_a", credential: goodCredential }, "ip", env, new Date(now.getTime() + 899_000))).toEqual({ status: "throttled", retryAfterSeconds: 1 });
     expect(await attemptLogin(store, { account: "clinician_a", credential: goodCredential }, "ip", env, new Date(now.getTime() + 900_000))).toEqual({ status: "ok", user });
     expect(store.events.at(-2)?.reasonCode).toBe("login_throttled");
   });
 
-  it("blocks accounts independently of IP changes and IP independently of account changes", async () => {
+  it("lets failures from one IP lock only that IP, never the account everywhere", async () => {
     const accountStore = new FakeLoginStore();
-    for (let i = 0; i < 5; i++) await attemptLogin(accountStore, { account: "clinician_a", credential: "bad" }, `ip-${i}`, env, now);
-    expect(await attemptLogin(accountStore, { account: "clinician_a", credential: goodCredential }, "new-ip", env, now)).toEqual({ status: "throttled", retryAfterSeconds: 900 });
+    for (let i = 0; i < 5; i++) await attemptLogin(accountStore, { account: "clinician_a", credential: "bad" }, "attacker-ip", env, now);
+    expect(await attemptLogin(accountStore, { account: "clinician_a", credential: goodCredential }, "attacker-ip", env, now)).toEqual({ status: "throttled", retryAfterSeconds: 900 });
+    expect(await attemptLogin(accountStore, { account: "clinician_a", credential: goodCredential }, "clinician-ip", env, now)).toEqual({ status: "ok", user });
+    const pairStore = new FakeLoginStore();
+    for (let i = 0; i < 4; i++) await attemptLogin(pairStore, { account: "clinician_a", credential: "bad" }, "ip", env, now);
+    await attemptLogin(pairStore, { account: "manager_a", credential: "bad" }, "ip", env, now);
+    expect(await attemptLogin(pairStore, { account: "clinician_a", credential: goodCredential }, "ip", env, now)).toEqual({ status: "throttled", retryAfterSeconds: 900 });
+  });
+
+  it("blocks an IP independently of account changes", async () => {
     const ipStore = new FakeLoginStore();
     for (let i = 0; i < 5; i++) await attemptLogin(ipStore, { account: `unknown_${i}`, credential: "bad" }, "same-ip", env, now);
     expect(await attemptLogin(ipStore, { account: "clinician_a", credential: goodCredential }, "same-ip", env, now)).toEqual({ status: "throttled", retryAfterSeconds: 900 });
@@ -92,7 +100,7 @@ describe("demo credential authorization", () => {
     expect(stored).not.toContain(raw.credential);
     expect(stored).not.toContain(raw.account);
     expect(stored).not.toContain("192.0.2.40");
-    expect(loginKey("account", "a")).not.toBe(loginKey("ip", "a"));
+    expect(loginKey("account_ip", "a")).not.toBe(loginKey("ip", "a"));
   });
 
   it.each([null, {}, { account: "clinician_a", credential: 5 }, { account: "clinician_a", credential: "x".repeat(1001) }])("rejects malformed credentials %j", async (raw) => {

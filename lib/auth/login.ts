@@ -18,8 +18,13 @@ export type LoginUser = { id: string; name: string; email: string; role: string 
 export type ThrottleState = { failureTimes: Date[]; blockedUntil: Date | null };
 export type LoginResult = { status: "ok"; user: LoginUser } | { status: "invalid" } | { status: "throttled"; retryAfterSeconds: number };
 
-export function loginKey(kind: "account" | "ip", value: string): string {
+export function loginKey(kind: "account_ip" | "ip", value: string): string {
   return `login:${kind}:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+/** Failures count per account-and-IP pair and per IP, so nobody can lock an account out from another IP. */
+export function throttleKeys(account: string, ip: string): { accountKey: string; ipKey: string } {
+  return { accountKey: loginKey("account_ip", JSON.stringify([account, ip])), ipKey: loginKey("ip", ip) };
 }
 
 export function credentialMatches(provided: string, expected: string | undefined): boolean {
@@ -63,8 +68,7 @@ export async function attemptLogin(
   const parsed = LoginInput.safeParse(raw);
   const rawAccount = typeof raw === "object" && raw !== null && "account" in raw && typeof raw.account === "string" ? raw.account.slice(0, 100) : "invalid";
   const account = parsed.success ? parsed.data.account : rawAccount;
-  const accountKey = loginKey("account", account);
-  const ipKey = loginKey("ip", ip);
+  const { accountKey, ipKey } = throttleKeys(account, ip);
   const [accountState, ipState] = await Promise.all([store.getState(accountKey), store.getState(ipKey)]);
   const retry = loginRetrySeconds([accountState, ipState], now);
   if (retry > 0) {
@@ -95,7 +99,8 @@ export async function authorizeDemoLogin(
   now?: Date,
 ): Promise<LoginResult> {
   const account = typeof raw === "object" && raw !== null && "account" in raw && typeof raw.account === "string" ? raw.account.slice(0, 100) : "invalid";
-  const keys = [loginKey("account", account), loginKey("ip", ip)].sort();
+  const { accountKey, ipKey } = throttleKeys(account, ip);
+  const keys = [accountKey, ipKey].sort();
   return database.transaction(async (tx) => {
     // Sorted row locks serialize attempts across instances without deadlocking account/IP pairs.
     for (const key of keys) {
