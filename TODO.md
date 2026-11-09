@@ -16,15 +16,15 @@ Resume from `.worktrees/build`, branch `feature/backend-base`. The root checkout
 
 ## Remaining work
 
-- [ ] Push the follow-up commit to shared `development` and the fork feature branch. Upstream pushes are human-gated.
-- [ ] Configure hosted app/runtime roles and shared spend ledger; run concurrency checks against hosted Neon. Local PostgreSQL verification does not prove hosted deployment behavior.
+- [x] Push the follow-up commit to shared `development` and the fork feature branch (2026-11-05).
+- [x] Hosted Neon project `ur-appeals` (2026-11-05): app and ledger databases migrated, restricted logins created, full integration passed through the pooler with fake clients. Production runs replay-only: with no `ANTHROPIC_API_KEY` or `SPEND_LEDGER_URL` set, a live run is refused (`503 ledger_unavailable`).
 - [ ] Once the tested shared ledger is configured, record real replays and run live structural/grounding checks under the authorized $26 ordinary testing stop. The $10 demo reserve needs human unlock. Never print/read secret files. Latest workable date is about Nov 9.
 - [ ] On the first live run, watch for `truncated`. Haiku 5.5 thinks by default and agent `maxTokens` is 6000–8000, so thinking may consume part of that budget.
 - [ ] Frontend handoff to Umer: API routes and JSON shapes in `BACKEND.md`, no frontend screens implemented by this track. No submission path. Denial/appeal/letter features and Should work remain deferred by D8.
 
 ## Decisions for the human
 
-- [ ] Remaining production advisories: `next` → bundled `postcss` 8.4.31 (high). The only fix is Next 16, a major upgrade. The advisories concern processing untrusted CSS; this app builds only its own CSS, so the recommendation is to accept until after the Nov 12 demo.
+- [x] Production advisories: `next` → bundled `postcss` 8.4.31 (high). Fixed without the Next 16 upgrade by an npm `overrides` entry pinning Next's `postcss` to 8.5.32; `npm audit --omit=dev` reports 0, and the production build passes (2026-11-09). Drop the override when upgrading Next.
 - [ ] Remaining dev-only advisories: `drizzle-kit` → `esbuild` and `@typescript-eslint` → `minimatch` (moderate). Not shipped to production. `npm audit`'s suggested `drizzle-kit@0.18.1` is a downgrade and should not be applied.
 
 ## Observations

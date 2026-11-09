@@ -18,6 +18,9 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      ".worktrees/**",
+      ".e2e-results/**",
+      ".agent-replay/**",
     ],
   },
 ];
