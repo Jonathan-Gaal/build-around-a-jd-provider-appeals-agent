@@ -112,7 +112,7 @@ export function DemoPlayer({ recordSegment }: { recordSegment: SegmentId | null 
   const label = recordSegment ? "Recording demo" : "Demo replay";
   return <div onClickCapture={keepLinksInDemo}>
     <div data-demo-chrome className="fixed inset-x-0 top-0 z-[10000] flex flex-wrap items-center justify-between gap-2 bg-[#1d392f] px-4 py-2 text-xs text-white">
-      <span><strong className="mr-2 rounded bg-[#d9ff3f] px-2 py-0.5 text-[#1d392f]">{label.toUpperCase()}</strong>{screen.role} view<span className="hidden sm:inline"> · synthetic case UR-1042{recordedAt && ` · recorded ${new Date(recordedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" })}`} · nothing here is live</span></span>
+      <span><strong className="mr-2 rounded bg-[#d9ff3f] px-2 py-0.5 text-[#1d392f]">{label.toUpperCase()}</strong>{screen.role} view<span className="hidden sm:inline"> · replaying a snapshot of real Claude calls{recordedAt && ` recorded ${new Date(recordedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" })}`} · case UR-1042 · no live AI calls</span></span>
       {!recordSegment && <button type="button" onClick={stop} className="rounded border border-white/40 px-3 py-1 font-semibold">Stop demo</button>}
     </div>
     {/* Viewers watch; the cursor clicks. This layer keeps a stray click from pulling the replay out of step. */}
