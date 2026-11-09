@@ -1,0 +1,220 @@
+{
+  "mode": "review_packet",
+  "sections": [
+    {
+      "heading": "Presenting risk at admission",
+      "claims": [
+        {
+          "text": "Admission documentation records active suicidal ideation with plan and intent.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f1"
+          ]
+        },
+        {
+          "text": "Admission documentation records a stated plan to overdose before admission, following a goodbye note written on October 31.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f2"
+          ]
+        },
+        {
+          "text": "Risk assessment at admission documents a preparatory act in the past week.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f3"
+          ]
+        },
+        {
+          "text": "The 2026-11-01 progress note assessed the patient as high risk and stated continued need for inpatient level of care.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f4"
+          ]
+        },
+        {
+          "text": "On 2026-11-01 the patient was on close observation.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f5"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Status documented on 2026-11-03",
+      "claims": [
+        {
+          "text": "Observation was reduced to every 15 minutes on November 2, as documented in the 2026-11-03 progress note.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f6"
+          ]
+        },
+        {
+          "text": "On 2026-11-03 the patient reported passive suicidal ideation without plan or intent.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f7"
+          ]
+        },
+        {
+          "text": "Risk remains moderate given recent preparatory act, ambivalence about safety after discharge, and living alone.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f8"
+          ]
+        },
+        {
+          "text": "On 2026-11-03 the patient's mood was depressed with a slightly brighter affect and limited future orientation.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f12"
+          ]
+        },
+        {
+          "text": "The 2026-11-03 progress note documented partial improvement.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f13"
+          ]
+        },
+        {
+          "text": "On 2026-11-03 the patient attended 2 of 4 groups.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f20"
+          ]
+        },
+        {
+          "text": "The patient ate 25% of meals on 2026-11-01 and 50% of meals on 2026-11-03.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f16"
+          ]
+        },
+        {
+          "text": "A family meeting had not been held as of 2026-11-03 because the sibling was unavailable until November 4.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f24"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Symptoms, medical history and functioning",
+      "claims": [
+        {
+          "text": "On 2026-11-01 the patient was tearful and stated I still want to die.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f9"
+          ]
+        },
+        {
+          "text": "The patient was diagnosed with major depressive disorder, recurrent, severe, without psychotic features at admission.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f10"
+          ]
+        },
+        {
+          "text": "At admission the patient reported two weeks of worsening depressed mood after job loss.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f11"
+          ]
+        },
+        {
+          "text": "The patient reported sleeping 3 to 4 hours a night before admission, and the 2026-11-01 note recorded 3 hours of sleep.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f14"
+          ]
+        },
+        {
+          "text": "The patient had an 8-pound weight loss and poor appetite before admission.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f15"
+          ]
+        },
+        {
+          "text": "The patient has a history of hypothyroidism, which is treated.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f17"
+          ]
+        },
+        {
+          "text": "Urine drug screen was negative at admission.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f18"
+          ]
+        },
+        {
+          "text": "At admission the patient was documented as disheveled with poor insight and judgment.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f19"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Treatment history, supports and environment",
+      "claims": [
+        {
+          "text": "Before admission the patient was nonadherent to sertraline for six weeks and outpatient therapy had stopped in July 2026.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f21"
+          ]
+        },
+        {
+          "text": "The patient had one prior inpatient admission in 2021 for suicidal ideation.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f22"
+          ]
+        },
+        {
+          "text": "The patient lives alone in an apartment, and the sibling lives 40 minutes away.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f23"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Combined interpretation for clinician review",
+      "claims": [
+        {
+          "text": "Documented 2026-11-03 findings describe partial improvement in mood, affect, sleep and meal intake alongside continued suicidal ideation, a recent preparatory act and living-situation factors; the clinician should weigh these together.",
+          "sourceKind": "agent_synthesis",
+          "factIds": [
+            "f7",
+            "f8",
+            "f12",
+            "f13",
+            "f16",
+            "f23",
+            "f24"
+          ]
+        }
+      ]
+    }
+  ],
+  "openQuestions": [
+    "No progress note for 2026-11-02 is in the supplied records, so the observation reduction referenced in the 2026-11-03 note cannot be verified from a daily note.",
+    "No discharge plan is documented; the initial treatment plan states the discharge plan is to be determined, and the 2026-11-03 note states only to begin discharge planning.",
+    "The initial treatment plan shows no signature, date of review, or update after 2026-11-01.",
+    "Sertraline dose history conflicts across records: the intake lists a prior prescription of 100 mg, the treatment plan restarts 50 mg, and the 2026-11-03 note increases to 100 mg. Not reconciled; clinician to clarify.",
+    "Intent is described differently across the 2026-11-01 intake and progress note; not reconciled; clinician to review.",
+    "The concurrent review request is marked as a draft, and no submission or signature is documented in the supplied records. The authorization record states a concurrent review deadline; clinician to confirm submission status.",
+    "Completion of the family meeting and written safety plan is not documented beyond plans to hold them."
+  ]
+}

@@ -2,7 +2,26 @@
 
 A prototype workspace for utilization review (UR) clinicians at behavioral-health providers. Specialized Claude agents assemble a concurrent-review packet with a source quote behind every statement, flag missing or conflicting information, predict the insurer's objections, and, when a denial comes in, match it to 3,680 real external appeal decisions from New York and California and draft the response. A clinician reviews and approves everything. Nothing is sent to a payer.
 
-Built by Jonathan Gaal and Umer Bashir for the L-2 Week 6 "build around a job description" project, around Ritten's [Authorization (UR) Specialist](https://www.ritten.io/jobs/authorization-ur-specialist) role.
+Built by Jonathan Gaal and Umer Bashir for the L-2 Week 6 "build around a job description" project, around Ritten's **Authorization (UR) Specialist** role. Ritten makes an EHR and practice-management system for behavioral-health providers; the role sits on its Revenue Cycle Management team.
+
+**The role.** The specialist gets and maintains prior authorizations and concurrent reviews across behavioral-health levels of care, payers and states. They are the first line of defense against authorization-related denials and coordinate with the intake, clinical and billing teams.
+
+**Responsibilities**
+
+1. Get and submit initial authorizations for IOP, PHP, residential and detox, with medical-necessity documentation (ASAM criteria).
+2. Manage concurrent reviews and track expiration dates to prevent coverage gaps.
+3. Keep authorization records accurate, monitor unit limits and handle retro-authorization requests.
+4. Be the main contact with payer UR departments, including peer-to-peer reviews and appeals.
+5. Find authorization gaps, support denial appeals and report denial trends to leadership.
+6. Coordinate with the intake, clinical and billing teams so documentation is complete and claims are clean.
+
+**Qualifications**
+
+- At least 3 years of behavioral-health UR or prior-authorization experience, across multiple levels of care.
+- Commercial, Medicaid and Medicare payers across states; ASAM; concurrent reviews, retro-auths and appeals.
+- Preferred: multi-state Medicaid, peer-to-peer preparation, ICD-10 codes and how they relate to level of care, CBHCM.
+
+*Summarized in our words. The original posting is at [ritten.io/jobs/authorization-ur-specialist](https://www.ritten.io/jobs/authorization-ur-specialist) and may change or disappear.*
 
 > **Synthetic data only.** No real patient information is used anywhere in this project.
 
@@ -34,10 +53,10 @@ docs/        product, architecture, data, research and plan docs
 
 ## Running it
 
-Not runnable yet. Once the app is scaffolded:
+For local synthetic development, configure the deployment, database, origin, auth secret and per-account credentials listed in `.env.example`. See [role accounts and permissions](docs/product/role-logins.md) for workspace access and tests.
 
 ```
-cp .env.example .env.local     # add ANTHROPIC_API_KEY and DATABASE_URL
+cp .env.example .env.local     # configure local values; never commit credentials
 npm install
 npm run db:push && npm run db:seed
 npm run dev

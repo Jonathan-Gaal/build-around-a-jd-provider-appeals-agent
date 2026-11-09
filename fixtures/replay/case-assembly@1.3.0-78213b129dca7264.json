@@ -1,0 +1,279 @@
+{
+  "mode": "review_packet",
+  "sections": [
+    {
+      "heading": "Risk",
+      "claims": [
+        {
+          "text": "Intake documents active suicidal ideation with plan and intent.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f4"
+          ]
+        },
+        {
+          "text": "Intake records a stated plan to overdose and intent to act.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f2"
+          ]
+        },
+        {
+          "text": "Intake documents a preparatory act in the past week.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f3"
+          ]
+        },
+        {
+          "text": "Intake assessment records high acute risk.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f5"
+          ]
+        },
+        {
+          "text": "Day 1 progress note documents active suicidal ideation with plan and intent uncertain.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f1"
+          ]
+        },
+        {
+          "text": "Intake and the day 1 progress note describe intent differently. This difference is documented and is not resolved in this packet.",
+          "sourceKind": "agent_synthesis",
+          "factIds": [
+            "f1",
+            "f2"
+          ]
+        },
+        {
+          "text": "Patient was admitted to inpatient psychiatry on close observation.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f6"
+          ]
+        },
+        {
+          "text": "Day 2 progress note documents suicidal ideation with plan and denial of current intent on the unit.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f7"
+          ]
+        },
+        {
+          "text": "Observation was stepped down to every 15 minutes on day 2.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f8"
+          ]
+        },
+        {
+          "text": "Day 3 progress note documents passive suicidal ideation without plan.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f9"
+          ]
+        },
+        {
+          "text": "Day 3 assessment rates risk as moderate and cites a recent preparatory act, ambivalence about safety after discharge, and living alone.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f10"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Symptoms and functioning",
+      "claims": [
+        {
+          "text": "Intake describes two weeks of worsening depressed mood after job loss.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f12"
+          ]
+        },
+        {
+          "text": "Day 2 progress note describes suicidal thoughts as quieter but still present.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f13"
+          ]
+        },
+        {
+          "text": "Day 3 progress note documents depressed mood with slightly brighter affect.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f14"
+          ]
+        },
+        {
+          "text": "Sleep was recorded as 3 hours on day 1 and 5 hours on day 3.",
+          "sourceKind": "agent_synthesis",
+          "factIds": [
+            "f15",
+            "f16"
+          ]
+        },
+        {
+          "text": "Meal intake was recorded as 25% on day 1 and 50% on day 3.",
+          "sourceKind": "agent_synthesis",
+          "factIds": [
+            "f17",
+            "f18"
+          ]
+        },
+        {
+          "text": "Intake records insight and judgment as poor.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f19"
+          ]
+        },
+        {
+          "text": "Day 3 progress note records limited future orientation.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f20"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Medical and substance use",
+      "claims": [
+        {
+          "text": "Intake lists hypothyroidism as treated.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f21"
+          ]
+        },
+        {
+          "text": "Patient refused the evening sertraline dose on day 2, citing nausea.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f22"
+          ]
+        },
+        {
+          "text": "Intake documents alcohol use of 2 to 3 beers on weekends and denies other drugs.",
+          "sourceKind": "extracted_fact",
+          "factIds": [
+            "f11"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Engagement",
+      "claims": [
+        {
+          "text": "Patient attended 1 group on day 2.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f23"
+          ]
+        },
+        {
+          "text": "Patient attended 2 of 4 groups on day 3.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f24"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Prior treatment and history",
+      "claims": [
+        {
+          "text": "Intake documents one prior inpatient admission in 2021 for suicidal ideation.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f25"
+          ]
+        },
+        {
+          "text": "Intake documents that outpatient therapy stopped in July 2026 after an insurance change.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f26"
+          ]
+        },
+        {
+          "text": "Intake documents nonadherence to prescribed sertraline for six weeks before admission.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f27"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Environment and support",
+      "claims": [
+        {
+          "text": "Intake documents that the patient lives alone in an apartment.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f28"
+          ]
+        },
+        {
+          "text": "Intake documents that the patient's sibling lives 40 minutes away.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f29"
+          ]
+        },
+        {
+          "text": "Day 3 progress note states the family meeting has not been held and is scheduled for November 4.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f32"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Treatment plan and discharge planning",
+      "claims": [
+        {
+          "text": "The initial treatment plan records the discharge plan as to be determined.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f30"
+          ]
+        },
+        {
+          "text": "Day 3 progress note states discharge planning has begun and considers a partial hospitalization program after discharge.",
+          "sourceKind": "direct_quote",
+          "factIds": [
+            "f31"
+          ]
+        },
+        {
+          "text": "The record shows a discharge plan recorded as to be determined on the initial plan and discharge planning noted as begun on day 3. The documented discharge pathway is not yet defined.",
+          "sourceKind": "agent_synthesis",
+          "factIds": [
+            "f30",
+            "f31"
+          ]
+        }
+      ]
+    }
+  ],
+  "openQuestions": [
+    "Intent is documented differently: intake records a plan to overdose and intent to act, while the day 1 progress note records intent uncertain. Clinician to review; not resolved here.",
+    "Discharge plan is documented as to be determined on the initial treatment plan, and day 3 notes discharge planning has begun. Clinician to confirm the current discharge plan and criteria.",
+    "The concurrent review request is a draft with no documented submission or decision. Clinician to confirm its status.",
+    "The initial treatment plan (version 1, 2026-11-01) has no documented update and no signature. Clinician to confirm whether a current signed plan exists.",
+    "The day 2 progress note is a late entry signed November 3 with no original entry time documented. Clinician to confirm when day 2 status was documented.",
+    "Sertraline dosing is documented differently across records: intake lists prescribed 100 mg, the treatment plan says restart 50 mg, day 1 says 50 mg started, and day 3 says increase to 100 mg. Clinician to confirm the current order.",
+    "Day 2 plan to address medication side effects does not specify the intervention or any dose change. Clinician to clarify.",
+    "No structured risk instrument is repeated after intake, and the safety plan exists only as a first draft on 2026-11-02. Current risk status and safety planning progress are not fully documented.",
+    "Family meeting has not been held as of day 3, and the sibling is unavailable until November 4. Home support plan is undocumented."
+  ]
+}

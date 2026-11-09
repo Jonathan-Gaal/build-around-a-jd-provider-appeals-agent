@@ -23,3 +23,4 @@ Decisions made during design, Nov 2026.
 | Agents get no tools | They can't take actions, which limits prompt-injection damage |
 | Quotes are verified in code against the source text | Cheapest strong guard against invented facts |
 | Postgres + Drizzle, Auth.js, Zod, Vercel | See [tech stack](tech-stack.md) |
+| Track every payer letter (`payer_letters`) and every appeal level (`appeals`) instead of a single `denials` row | Statuses and appeals must be tracked across approvals, partial approvals, requests for info and multi-level appeals; each parsed field keeps its quote so the parser can be evaluated |

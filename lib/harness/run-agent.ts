@@ -1,9 +1,12 @@
+import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { createHash } from "node:crypto";
 import type { AgentDef } from "../agents/types";
 import { formatDocuments, type SourceDocument } from "./documents";
-import { costUsd, type Usage } from "./pricing";
+import type { Usage } from "./pricing";
+import { deploymentOf, getEnv, type Env } from "../env";
+import { preflightAttempt, settleAttempt, type SpendControls, type SpendRefusal } from "./spend";
 import { readReplay, replayKey, writeReplay } from "./replay";
 import { verifyQuotes, type QuoteCheck } from "./verify-quotes";
 
@@ -32,6 +35,20 @@ export interface ClaudeClient {
 
 export type RunStatus = "ok" | "needs_review" | "failed";
 
+/** Why a run failed. "timeout" is shown separately in the UI so the clinician sees a timed-out agent, not a generic error. */
+export type ErrorKind = "timeout" | "api" | "schema" | "truncated" | "refusal" | "no_replay" | "budget" | "spend_stop" | "ledger_unavailable";
+
+export const ERROR_MESSAGES: Readonly<Record<ErrorKind, string>> = {
+  timeout: "The model call timed out.", api: "The model API call failed.",
+  schema: "The model output did not match the required format.",
+  truncated: "The model output was cut off at the token limit.",
+  refusal: "The model declined to answer.",
+  no_replay: "No usable replay for this input; no live call was made.",
+  budget: "The call is over its input limit; no call was made.",
+  spend_stop: "The spend stop was reached; no call was made.",
+  ledger_unavailable: "The spend ledger is unavailable; no live call was made.",
+};
+
 /** One row for the agent_runs table. The caller decides where to store it. */
 export interface AgentRunRecord {
   agent: string;
@@ -46,6 +63,10 @@ export interface AgentRunRecord {
   costUsd: number;
   replayed: boolean;
   error?: string;
+  errorKind?: ErrorKind;
+  recordingError?: "replay_write_failed";
+  spendRefusal: SpendRefusal | null;
+  spendUnsettled: boolean;
   startedAt: string;
   durationMs: number;
 }
@@ -59,9 +80,15 @@ export interface AgentResult<O> {
   usage: Usage | null;
   costUsd: number;
   error?: string;
+  errorKind?: ErrorKind;
+  recordingError?: "replay_write_failed";
+  spendRefusal: SpendRefusal | null;
+  spendUnsettled: boolean;
 }
 
 export interface RunAgentOptions {
+  env?: Env;
+  spend?: SpendControls;
   client?: ClaudeClient;
   model?: string;
   /** Persist the run (db insert in the app, console in scripts). Required by convention; never skip logging. */
@@ -75,25 +102,58 @@ export interface AgentInput {
   documents: SourceDocument[];
 }
 
-let defaultClient: Anthropic | undefined;
-function getClient(): ClaudeClient {
-  // Server-only. ANTHROPIC_API_KEY is read from env by the SDK; never pass it from the browser.
-  defaultClient ??= new Anthropic();
+/** Invalid or cut-off JSON reads as null, so the caller still sees stop_reason and usage. */
+export function readStructuredOutput(content: readonly { type: string; text?: string }[]): unknown {
+  const text = content.find((block) => block.type === "text")?.text;
+  if (text === undefined) return null;
+  try { return JSON.parse(text); } catch { return null; }
+}
+
+let defaultClient: ClaudeClient | undefined;
+function getClient(env: Env): ClaudeClient {
+  // Config owns the only environment read; never accept a browser-provided key.
+  if (!defaultClient) {
+    const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY ?? "" });
+    // The SDK's parse() throws on cut-off JSON, which loses stop_reason and the real usage.
+    defaultClient = { messages: { parse: async (params, options) => {
+      const message = await anthropic.messages.create(params, options);
+      return { parsed_output: readStructuredOutput(message.content), usage: message.usage, stop_reason: message.stop_reason };
+    } } };
+  }
   return defaultClient;
 }
 
-function replayMode(): "off" | "read" | "record" {
-  if (process.env.AGENT_REPLAY === "1") return "read";
-  if (process.env.AGENT_RECORD === "1") return "record";
-  return "off";
+/** Harness-raised errors carry their kind so the UI can say what happened. */
+class AgentOutputError extends Error {
+  constructor(
+    readonly kind: ErrorKind,
+  ) {
+    super(ERROR_MESSAGES[kind]);
+  }
+}
+
+function classifyError(err: unknown): ErrorKind {
+  if (err instanceof AgentOutputError) return err.kind;
+  if (err instanceof Anthropic.APIConnectionTimeoutError) return "timeout";
+  return "api";
 }
 
 /** 400/401/403/404 will fail the same way again, so do not retry them. */
 function isRetryable(err: unknown): boolean {
+  if (err instanceof AgentOutputError && (err.kind === "truncated" || err.kind === "refusal")) return false;
   if (err instanceof Anthropic.APIError) {
     return err.status === undefined || err.status === 408 || err.status === 409 || err.status === 429 || err.status >= 500;
   }
   return true; // schema/parse errors and timeouts: one more try is worth it
+}
+
+function sumUsage(previous: Usage | null, next: Usage): Usage {
+  return {
+    input_tokens: (previous?.input_tokens ?? 0) + next.input_tokens,
+    output_tokens: (previous?.output_tokens ?? 0) + next.output_tokens,
+    cache_creation_input_tokens: (previous?.cache_creation_input_tokens ?? 0) + (next.cache_creation_input_tokens ?? 0),
+    cache_read_input_tokens: (previous?.cache_read_input_tokens ?? 0) + (next.cache_read_input_tokens ?? 0),
+  };
 }
 
 export async function runAgent<I extends AgentInput, O>(
@@ -101,9 +161,10 @@ export async function runAgent<I extends AgentInput, O>(
   input: I,
   opts: RunAgentOptions = {},
 ): Promise<AgentResult<O>> {
-  const model = opts.model ?? agent.model ?? process.env.MODEL_DEFAULT ?? "claude-haiku-5-5";
+  const env = opts.env ?? getEnv();
+  const model = opts.model ?? agent.model ?? env.MODEL_DEFAULT;
   const prompt = agent.buildPrompt(input);
-  const mode = opts.replay ?? replayMode();
+  const mode = opts.replay ?? (env.AGENT_REPLAY ? "read" : env.AGENT_RECORD ? "record" : "off");
   const key = replayKey(agent.name, agent.version, model, agent.system, prompt);
   const startedAt = new Date();
 
@@ -112,52 +173,82 @@ export async function runAgent<I extends AgentInput, O>(
   let attempts = 0;
   let replayed = false;
   let error: string | undefined;
+  let errorKind: ErrorKind | undefined;
 
+  let recordingError: "replay_write_failed" | undefined;
+  let spendRefusal: SpendRefusal | null = null;
+  let spendUnsettled = false;
+  let totalMicroUsd = 0;
   if (mode === "read") {
-    const saved = await readReplay(key);
+    const allowed = deploymentOf(env) !== "production" || env.REPLAY_PRODUCTION_LABELED;
+    const saved = allowed ? await readReplay(key, env.AGENT_REPLAY_DIR) : undefined;
     const parsed = agent.output.safeParse(saved);
-    if (parsed.success) {
+    if (allowed && parsed.success) {
       output = parsed.data;
       replayed = true;
     } else {
-      error = `No replay saved for ${key}. Run once with AGENT_RECORD=1 first.`;
+      errorKind = "no_replay";
+      error = ERROR_MESSAGES.no_replay;
     }
   } else {
-    const client = opts.client ?? getClient();
-    while (attempts <= agent.maxRetries && output === null) {
+    while (attempts <= Math.min(agent.maxRetries, 1) && output === null) {
+      const hold = await preflightAttempt({ model, systemText: agent.system, promptText: prompt, maxTokens: agent.maxTokens, controls: opts.spend, env });
+      if (!hold.ok) {
+        spendRefusal = hold.refusal;
+        errorKind = hold.refusal.errorKind;
+        error = ERROR_MESSAGES[errorKind];
+        break;
+      }
       attempts++;
+      let attemptUsage: Usage | null = null;
+      let retry = true;
       try {
+        const client = opts.client ?? getClient(env);
         const res = await client.messages.parse(
           {
-            model,
-            max_tokens: agent.maxTokens,
-            // System prompt is static per agent version, so cache it.
+            model, max_tokens: agent.maxTokens,
             system: [{ type: "text", text: agent.system, cache_control: { type: "ephemeral" } }],
             messages: [{ role: "user", content: prompt }],
             output_config: { format: zodOutputFormat(agent.output) },
           },
-          { timeout: agent.timeoutMs, maxRetries: 0 }, // our loop owns retries
+          { timeout: agent.timeoutMs, maxRetries: 0 },
         );
-        usage = res.usage;
-        if (res.stop_reason === "max_tokens") throw new Error(`Hit max_tokens (${agent.maxTokens}); output truncated`);
-        if (res.stop_reason === "refusal") throw new Error("Model refused");
-        // Validate again ourselves: never trust a shape we did not check.
+        attemptUsage = res.usage ?? null;
+        if (res.stop_reason === "max_tokens") throw new AgentOutputError("truncated");
+        if (res.stop_reason === "refusal") throw new AgentOutputError("refusal");
         const checked = agent.output.safeParse(res.parsed_output);
-        if (!checked.success) throw new Error(`Output failed schema: ${checked.error.message}`);
+        if (!checked.success) throw new AgentOutputError("schema");
         output = checked.data;
         error = undefined;
+        errorKind = undefined;
       } catch (err) {
-        error = err instanceof Error ? err.message : String(err);
-        if (!isRetryable(err)) break;
+        errorKind = classifyError(err);
+        error = ERROR_MESSAGES[errorKind];
+        retry = isRetryable(err);
+      } finally {
+        const settled = await settleAttempt({ controls: opts.spend!, reservationId: hold.reservationId, estimateMicroUsd: hold.estimateMicroUsd, price: hold.price, usage: attemptUsage });
+        totalMicroUsd += settled.actualMicroUsd;
+        spendUnsettled ||= !settled.settled;
+        if (settled.usageTrusted && attemptUsage) {
+          usage = sumUsage(usage, attemptUsage);
+        }
+      }
+      if (!retry) break;
+    }
+    if (output !== null && mode === "record") {
+      try { await writeReplay(key, output, env.AGENT_REPLAY_DIR); }
+      catch {
+        // Recording failure must not erase an already paid, validated run.
+        recordingError = "replay_write_failed";
+        error = "The replay could not be saved.";
       }
     }
-    if (output !== null && mode === "record") await writeReplay(key, output);
   }
 
   const quoteChecks = output !== null && agent.extractQuotes ? verifyQuotes(agent.extractQuotes(output), input.documents) : [];
   const status: RunStatus =
     output === null ? "failed" : quoteChecks.some((q) => q.status === "unsupported") ? "needs_review" : "ok";
-  const cost = usage ? costUsd(model, usage) : 0;
+  const cost = totalMicroUsd / 1_000_000;
 
   await opts.recordRun?.({
     agent: agent.name,
@@ -172,11 +263,15 @@ export async function runAgent<I extends AgentInput, O>(
     costUsd: cost,
     replayed,
     error,
+    errorKind,
+    recordingError,
+    spendRefusal,
+    spendUnsettled,
     startedAt: startedAt.toISOString(),
     durationMs: Date.now() - startedAt.getTime(),
   });
 
-  return { output, quoteChecks, status, usage, costUsd: cost, error };
+  return { output, quoteChecks, status, usage, costUsd: cost, error, errorKind, recordingError, spendRefusal, spendUnsettled };
 }
 
 /** Re-exported so agents and scripts import document helpers from one place. */

@@ -35,9 +35,29 @@
     "note-2026-11-03.md",
     "policy-payer-north.md"
   ],
-  "late_arrival": ["late-arrival/note-2026-11-02.md"],
+  "late_arrival": [
+    "late-arrival/note-2026-11-02.md"
+  ],
   "expected_issues": [
-    { "type": "missing_document", "description": "Progress note for Nov 2 is missing", "severity": "critical", "blocking": true },
-    { "type": "date_conflict", "description": "Requested Nov 4–6 extends past authorized Nov 1–3; verify the intended period", "severity": "major", "blocking": true }
-  ]
+    {
+      "type": "missing_document",
+      "description": "Progress note for Nov 2 is missing",
+      "severity": "critical",
+      "blocking": true
+    },
+    {
+      "type": "date_conflict",
+      "description": "Requested Nov 4–6 extends past authorized Nov 1–3; verify the intended period",
+      "severity": "major",
+      "blocking": true
+    }
+  ],
+  "payer_responses": {
+    "_note": "Alternate outcomes for after submission. The demo uploads ONE of these. Never loaded by default.",
+    "request_for_info": "payer-responses/request-for-info.md",
+    "approval": "payer-responses/approval.md",
+    "partial_approval": "payer-responses/partial-approval.md",
+    "denial": "payer-responses/denial.md",
+    "expected_fields": "payer-responses/expected-fields.json"
+  }
 }
