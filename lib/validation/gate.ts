@@ -6,7 +6,7 @@ export const BLOCKER_CODES = ['open_blocking_issue', 'required_document_missing'
 export type BlockerCode = typeof BLOCKER_CODES[number];
 export type Blocker = { code: BlockerCode; message: string; objectType?: string; objectId?: string };
 export const BLOCKER_MESSAGES: Readonly<Record<BlockerCode, string>> = {
-  run_incomplete: "The latest agent run hasn't completed.",
+  run_incomplete: "The latest agent run hasn't completed, or a document arrived after it started.",
   open_blocking_issue: 'A blocking issue is still open.',
   required_document_missing: 'A required document is missing or unverified.',
   date_coverage_gap: 'A day of the stay has no verified progress note.',
@@ -28,6 +28,8 @@ export type GateSnapshot = {
   claims: ReadonlyArray<{ id: string; included: boolean; status: ClaimStatus; material: boolean; boundaryFlagged: boolean }>;
   checks: ReadonlyArray<{ name: string; result: CheckResult; affected?: readonly string[] }>;
   hash: { recomputed: string; stored: string | null; requested: string | null };
+  /** Documents received after the latest run started: no run has read them yet. */
+  documentsAfterRun: readonly string[];
 };
 
 export function requiredNoteDates(stay: { start: string; end: string }, asOfDate: string): string[] {
@@ -40,6 +42,8 @@ export function evaluateGate(snapshot: GateSnapshot): Blocker[] {
     blockers.push({ code, message: BLOCKER_MESSAGES[code], objectType, ...(objectId === undefined ? {} : { objectId }) });
   }
   if (snapshot.latestRunGroupStatus !== 'complete') add('run_incomplete', 'run_group');
+  // Same rule the packet release applies: sign-off must not pass a source the release would then refuse.
+  for (const id of snapshot.documentsAfterRun) add('run_incomplete', 'document', id);
   for (const issue of snapshot.issues) if (issue.blocking && issue.status !== 'resolved') add('open_blocking_issue', 'issue', issue.id);
   for (const [id, role] of [[snapshot.authorizationDocumentId, 'authorization_record'], [snapshot.requestDocumentId, 'request']] as const) {
     if (id === null || !snapshot.documents.some((document) => document.id === id && document.verificationState === 'verified')) add('required_document_missing', 'document_role', role);
