@@ -24,7 +24,7 @@ export function makeCursor(reducedMotion: boolean): Cursor {
   el.setAttribute("aria-hidden", "true");
   el.dataset.demoCursor = "";
   el.innerHTML = ARROW;
-  const glide = reducedMotion ? 0 : 700;
+  const glide = reducedMotion ? 0 : 700 * DEMO_PACE;
   Object.assign(el.style, { position: "fixed", left: "0", top: "0", zIndex: "9999", pointerEvents: "none", transition: `transform ${glide}ms cubic-bezier(.4,0,.2,1)`, filter: "drop-shadow(0 3px 4px rgba(0,0,0,.45))" });
   let at = { x: window.innerWidth * 0.8, y: window.innerHeight * 0.85 };
   const place = () => { el.style.transform = `translate(${at.x - 6}px, ${at.y - 3}px)`; };
@@ -45,6 +45,9 @@ export function makeCursor(reducedMotion: boolean): Cursor {
 }
 
 const sleep = (ms: number) => new Promise<void>(done => window.setTimeout(done, ms));
+/** Slows every on-screen beat (glides, holds, typing) so viewers can follow; polling is not paced. */
+export const DEMO_PACE = 1.5;
+const pause = (ms: number) => sleep(ms * DEMO_PACE);
 const normalized = (value: string) => value.replace(/\s+/g, " ").trim();
 const matches = (value: string, text: Target["text"]) => typeof text === "string" ? normalized(value).includes(text) : text.test(normalized(value));
 function visible(el: Element) { return el.getClientRects().length > 0 && !el.closest("[data-demo-chrome]"); }
@@ -71,7 +74,7 @@ async function waitFor(target: Target, ctx: RunContext, timeoutMs = 30000, enabl
 
 async function pointAt(el: HTMLElement, ctx: RunContext) {
   el.scrollIntoView({ block: "center", behavior: ctx.reducedMotion ? "auto" : "smooth" });
-  await sleep(ctx.reducedMotion ? 50 : 450);
+  await (ctx.reducedMotion ? sleep(50) : pause(450));
   const box = el.getBoundingClientRect();
   await ctx.cursor.move(box.left + Math.min(box.width / 2, 120), box.top + box.height / 2);
 }
@@ -88,20 +91,20 @@ export async function runSteps(steps: DemoStep[], ctx: RunContext): Promise<void
     if (ctx.signal.aborted) throw new DOMException("Demo stopped", "AbortError");
     if (step.do !== "repeat" && step.caption) ctx.caption(step.caption);
     switch (step.do) {
-      case "say": await sleep(step.ms ?? 2200); break;
-      case "point": await pointAt(await waitFor(step.target, ctx), ctx); await sleep(1200); break;
+      case "say": await pause(step.ms ?? 2200); break;
+      case "point": await pointAt(await waitFor(step.target, ctx), ctx); await pause(1200); break;
       case "waitFor": await waitFor(step.target, ctx, step.timeoutMs); break;
       case "click": {
         const el = await waitFor(step.target, ctx, 30000, true);
-        await pointAt(el, ctx); ctx.cursor.pulse(); el.click(); await sleep(700);
+        await pointAt(el, ctx); ctx.cursor.pulse(); el.click(); await pause(700);
         break;
       }
       case "type": {
         const el = await waitFor(step.target, ctx, 30000, true) as HTMLInputElement | HTMLTextAreaElement;
         await pointAt(el, ctx); ctx.cursor.pulse(); el.focus();
         if (ctx.reducedMotion) setValue(el, step.text, "input");
-        else for (let index = 1; index <= step.text.length; index++) { setValue(el, step.text.slice(0, index), "input"); await sleep(18); }
-        await sleep(400);
+        else for (let index = 1; index <= step.text.length; index++) { setValue(el, step.text.slice(0, index), "input"); await pause(18); }
+        await pause(400);
         break;
       }
       case "select": {
@@ -109,7 +112,7 @@ export async function runSteps(steps: DemoStep[], ctx: RunContext): Promise<void
         await pointAt(el, ctx); ctx.cursor.pulse();
         const option = Array.from(el.options).find(item => normalized(item.text).includes(step.option));
         if (!option) throw new Error(`demo_option_missing: ${step.option}`);
-        setValue(el, option.value, "change"); await sleep(900);
+        setValue(el, option.value, "change"); await pause(900);
         break;
       }
       case "upload": {
@@ -121,7 +124,7 @@ export async function runSteps(steps: DemoStep[], ctx: RunContext): Promise<void
         transfer.items.add(new File([content], step.name, { type: "text/markdown" }));
         el.files = transfer.files;
         el.dispatchEvent(new Event("change", { bubbles: true }));
-        await sleep(1200);
+        await pause(1200);
         break;
       }
       case "repeat":

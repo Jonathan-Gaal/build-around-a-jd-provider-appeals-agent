@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react
 import Link from "next/link";
 import { setDemoSource } from "@/lib/client/api";
 import { DemoPlayback, DemoRecorder, type DemoRecording } from "@/lib/client/demo-source";
-import { makeCursor, runSteps } from "@/lib/client/demo-runner";
+import { DEMO_PACE, makeCursor, runSteps } from "@/lib/client/demo-runner";
 import { SEGMENTS, STORIES, type SegmentId, type StoryId } from "@/lib/client/demo-scripts";
 import { useWorkflowReducedMotion } from "@/lib/client/workflow-reduced-motion";
 import { CaseWorkspace, type CaseTab } from "./case-workspace";
@@ -38,7 +38,7 @@ function DemoScreen({ location }: { location: string }) {
 type Status = "choosing" | "playing" | "done" | "failed";
 declare global { interface Window { __demoFiles?: Record<string, string>; __demoRecording?: DemoRecording; __demoStatus?: string } }
 
-export function DemoPlayer({ recordSegment, autoplay }: { recordSegment: SegmentId | null; autoplay: StoryId | null }) {
+export function DemoPlayer({ recordSegment }: { recordSegment: SegmentId | null }) {
   const reducedMotion = useWorkflowReducedMotion();
   const [status, setStatus] = useState<Status>("choosing");
   const [story, setStory] = useState<StoryId | null>(null);
@@ -69,7 +69,7 @@ export function DemoPlayer({ recordSegment, autoplay }: { recordSegment: Segment
     setStory(id); setStatus("playing"); setFailure(null); setCaption("");
     const cursor = makeCursor(reducedMotion);
     let playback: DemoPlayback | null = null;
-    const ticks = window.setInterval(() => { playback?.advanceTick(); }, 1500);
+    const ticks = window.setInterval(() => { playback?.advanceTick(); }, 1500 * DEMO_PACE);
     try {
       for (const segmentId of STORIES.find(item => item.id === id)!.segments) {
         const segment = SEGMENTS[segmentId], recording = await load(segmentId);
@@ -106,14 +106,13 @@ export function DemoPlayer({ recordSegment, autoplay }: { recordSegment: Segment
     return () => { abort.abort(); setDemoSource(null); };
   }, [recordSegment, show]);
 
-  useEffect(() => { if (autoplay && !recordSegment) void play(autoplay); }, [autoplay, recordSegment, play]);
   useEffect(() => () => { controller.current?.abort(); setDemoSource(null); }, []);
 
   if (status === "choosing" || !screen) return <DemoChooser onPlay={id => { void play(id); }} />;
   const label = recordSegment ? "Recording demo" : "Demo replay";
   return <div onClickCapture={keepLinksInDemo}>
     <div data-demo-chrome className="fixed inset-x-0 top-0 z-[10000] flex flex-wrap items-center justify-between gap-2 bg-[#1d392f] px-4 py-2 text-xs text-white">
-      <span><strong className="mr-2 rounded bg-[#d9ff3f] px-2 py-0.5 text-[#1d392f]">{label.toUpperCase()}</strong>{screen.role} view<span className="hidden sm:inline"> · synthetic case UR-1042{recordedAt && ` · recorded ${new Date(recordedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" })}`} · nothing here is live</span></span>
+      <span><strong className="mr-2 rounded bg-[#d9ff3f] px-2 py-0.5 text-[#1d392f]">{label.toUpperCase()}</strong>{screen.role} view<span className="hidden sm:inline"> · replaying a snapshot of real Claude calls{recordedAt && ` recorded ${new Date(recordedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" })}`} · case UR-1042 · no live AI calls</span></span>
       {!recordSegment && <button type="button" onClick={stop} className="rounded border border-white/40 px-3 py-1 font-semibold">Stop demo</button>}
     </div>
     {/* Viewers watch; the cursor clicks. This layer keeps a stray click from pulling the replay out of step. */}
