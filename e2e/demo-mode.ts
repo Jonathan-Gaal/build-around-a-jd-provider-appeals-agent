@@ -41,6 +41,12 @@ async function main() {
       assert.deepEqual(apiCalls, [], `${story.id} called the API`);
       assert.deepEqual(errors, [], `${story.id} threw in the page`);
       if (story.id === "full") assert.equal(await page.locator('[data-demo-stage="done"]').count(), STAGES.length, "full story did not reach every stage");
+      if (story.id === "full") {
+        // Watch again in the same browser: the first viewing must leave nothing behind that changes the second.
+        await page.getByRole("button", { name: "Watch again" }).click();
+        await caption.filter({ hasText: /That's the demo|The demo stopped/ }).waitFor({ timeout: 400000 });
+        assert.match(await caption.innerText(), /That's the demo/, "full story failed on Watch again");
+      }
       console.log(`PASS ${story.id}: played to the end in ${Math.round((Date.now() - started) / 1000)} s, zero API calls`);
       await page.close();
     }
