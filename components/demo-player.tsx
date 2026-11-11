@@ -142,13 +142,13 @@ export function DemoPlayer({ recordSegment }: { recordSegment: SegmentId | null 
     </div>
     {/* Viewers watch; the cursor clicks. This layer keeps a stray click from pulling the replay out of step. */}
     <div data-demo-chrome aria-hidden="true" className="fixed inset-0 z-[9990]" />
-    <div className="pt-9 pb-40"><DemoScreen key={screen.key} location={screen.location} /></div>
+    <div className="pt-9 pb-40 sm:pb-64"><DemoScreen key={screen.key} location={screen.location} /></div>
     <div data-demo-chrome className="fixed inset-x-0 bottom-0 z-[10000] flex flex-col items-center gap-2 p-4">
-      <div role="status" aria-live="polite" data-demo-caption className="flex max-w-3xl flex-wrap items-center gap-3 rounded-xl bg-[#1d392f]/95 px-5 py-3 text-sm text-white shadow-xl sm:text-lg">
-        <span>{action && status === "playing" && <strong data-demo-action className="block text-xs font-semibold text-[#d9ff3f] sm:text-sm">{action}</strong>}{status === "failed" ? `The demo stopped (${failure}).` : caption || "…"}{paused && <em data-demo-paused className="mt-1 block text-xs not-italic text-white/70 sm:text-sm">Paused. Press Space or Resume to continue.</em>}</span>
+      <div role="status" aria-live="polite" data-demo-caption className="flex max-w-5xl flex-wrap items-center gap-3 rounded-2xl bg-[#1d392f]/95 px-5 py-3 text-base font-bold leading-snug text-white shadow-xl sm:px-8 sm:py-5 sm:text-3xl">
+        <span>{action && status === "playing" && <strong data-demo-action className="mb-1 block text-sm font-semibold text-[#d9ff3f] sm:text-xl">{action}</strong>}{status === "failed" ? `The demo stopped (${failure}).` : caption || "…"}{paused && <em data-demo-paused className="mt-2 block text-sm font-normal not-italic text-white/70 sm:text-lg">Paused. Press Space or Resume to continue.</em>}</span>
         {(status === "done" || status === "failed") && story && <>
-          <button type="button" onClick={() => { void play(story); }} className="rounded bg-[#d9ff3f] px-3 py-1 font-semibold text-[#1d392f]">Watch again</button>
-          <button type="button" onClick={stop} className="rounded border border-white/40 px-3 py-1">Choose another view</button>
+          <button type="button" onClick={() => { void play(story); }} className="rounded bg-[#d9ff3f] px-3 py-1 text-base font-semibold text-[#1d392f]">Watch again</button>
+          <button type="button" onClick={stop} className="rounded border border-white/40 px-3 py-1 text-base font-normal">Choose another view</button>
         </>}
       </div>
       {!recordSegment && <StageTracker current={stage} finished={status === "done"} />}
@@ -159,7 +159,7 @@ export function DemoPlayer({ recordSegment }: { recordSegment: SegmentId | null 
 /** The main parts of the process; the current one is highlighted, finished ones are ticked. */
 function StageTracker({ current, finished }: { current: StageId | null; finished: boolean }) {
   const at = finished ? STAGES.length : STAGES.findIndex(item => item.id === current);
-  return <ol aria-label="Review stages" className="flex max-w-full flex-wrap justify-center gap-1.5 rounded-xl bg-[#1d392f]/95 px-3 py-2 text-xs text-white shadow-xl sm:text-sm">
+  return <ol aria-label="Review stages" className="flex max-w-full flex-wrap justify-center gap-1.5 rounded-xl bg-[#1d392f]/95 px-3 py-2 text-xs text-white shadow-xl sm:text-base">
     {STAGES.map((item, index) => {
       const state = index < at ? "done" : index === at ? "current" : "next";
       return <li key={item.id} aria-current={state === "current" ? "step" : undefined} data-demo-stage={state} className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 ${state === "current" ? "bg-[#d9ff3f] font-semibold text-[#1d392f]" : state === "done" ? "text-white" : "text-white/50"}`}>
