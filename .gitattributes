@@ -1,0 +1,2 @@
+# Replay keys depend on exact synthetic fixture content across operating systems.
+fixtures/ur-1042/** text eol=lf
