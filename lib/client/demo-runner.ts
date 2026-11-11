@@ -47,7 +47,7 @@ export function makeCursor(reducedMotion: boolean): Cursor {
 
 const sleep = (ms: number) => new Promise<void>(done => window.setTimeout(done, ms));
 /** Slows every on-screen beat (glides, holds, typing) so viewers can follow; polling is not paced. */
-export const DEMO_PACE = 1.5;
+export const DEMO_PACE = 2.25;
 const pause = (ms: number) => sleep(ms * DEMO_PACE);
 const normalized = (value: string) => value.replace(/\s+/g, " ").trim();
 const matches = (value: string, text: Target["text"]) => typeof text === "string" ? normalized(value).includes(text) : text.test(normalized(value));
