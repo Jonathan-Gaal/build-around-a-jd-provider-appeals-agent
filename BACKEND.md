@@ -4,6 +4,8 @@ Implemented in the backend track: Postgres/Drizzle migrations and synthetic seed
 
 ## Local setup
 
+The UR-1042 fixture files must use LF line endings so the bundled agent replays match on Windows. Git enforces this for new checkouts. If an existing checkout has CRLF fixtures, refresh those files from Git and seed a fresh local demo database; re-seeding an existing database does not replace its documents. Back up any local edits first.
+
 1. `npm ci`.
 2. Copy `.env.example` to `.env.local`. Set `APP_DEPLOYMENT=local`, `DATABASE_URL`, `AUTH_SECRET` (at least 32 characters), `APP_ORIGIN=http://localhost:3000`, and `DEMO_CREDENTIAL_CLINICIAN_A` (at least 20 characters). Credentials have no defaults. Never commit the populated file.
 3. Run `npm run db:migrate` as the database owner, then `npm run db:seed`.

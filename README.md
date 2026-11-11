@@ -33,7 +33,7 @@ In fictional case UR-1042, a UR clinician opens a prepared concurrent-review pac
 
 ## Status
 
-Design complete. The reference agent and harness are in `lib/` (see [reference agent](docs/architecture/reference-agent.md)); the app scaffold is next. See the [build plan](docs/plan/build-plan.md).
+Working prototype with demo mode: self-playing role walkthroughs use bundled recordings and synthetic data. Appeal matching is planned. The hosted deployment needs configuration before it can run. See [BACKEND.md](BACKEND.md) for setup and [TODO.md](TODO.md) for the backend handoff and remaining work.
 
 ## Docs
 
@@ -45,9 +45,9 @@ Design complete. The reference agent and harness are in `lib/` (see [reference a
 ## Repo layout
 
 ```
-app/  lib/  fixtures/  e2e/     (coming with the build)
+app/  components/  lib/  fixtures/  e2e/  migrations/
 data/        raw and cleaned NY/CA appeal datasets
-scripts/     data cleaning (and later seed and eval scripts)
+scripts/     data cleaning, seed and eval scripts
 docs/        product, architecture, data, research and plan docs
 ```
 
